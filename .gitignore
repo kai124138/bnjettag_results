@@ -1,0 +1,14 @@
+# Secrets — never commit
+**/wandb-api-key.txt
+*.env
+
+# Generated HLS project bundles: regenerable from the checkpoints + configs
+*.tar.gz
+hls_prj_*/
+
+# Raw Vitis reports are committed gzipped (40 MB each uncompressed)
+*.xml
+
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,293 @@
+# ROC curves for the 5 paper runs: binary-softmax A8/A6/A4 + W8A8 + FP32 baselines.
+#
+# Self-contained. make_roc.py is embedded below as a ConfigMap (canonical source:
+# code/training/make_roc.py). Each model is evaluated in its OWN process with the
+# matching BN_VARIANT/BN_ACT_BITS, because qkerasModel bakes those into module
+# globals at import (they are not stored in the layer configs). All runs are then
+# overlaid into one figure.
+#
+#   Apply:   kubectl apply -f kai-roc-curves.yaml
+#   Logs:    kubectl logs -f job/kai-roc-curves
+#   Output:  /data/outputs/roc/roc_overlay.png  +  roc_auc.md   (on the kai-data PVC)
+#   Fetch:   kubectl cp <pod>:/data/outputs/roc/roc_overlay.png ./roc_overlay.png
+#
+# After editing code/training/make_roc.py, re-embed it with:
+#   python3 -c "import pathlib,textwrap as t; \
+#     s=t.indent(pathlib.Path('code/training/make_roc.py').read_text(),'    '); \
+#     p=pathlib.Path('code/jobs/training/kai-roc-curves.yaml'); \
+#     p.write_text(p.read_text().replace('    __MAKE_ROC_PY__\n', s if s.endswith(chr(10)) else s+chr(10)))"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kai-roc-script
+data:
+  make_roc.py: |
+    #!/usr/bin/env python3
+    """ROC curves for the trained BitNet jet-tagger runs (multi-run overlay).
+
+    Deviation from upstream roc.py / ROC.py: those are single-model boilerplate wired
+    to the upstream data format (key "Testing Data", file testingDataSig.h5) and plain
+    load_model. This evaluator loops the actual paper runs, reads Kai's NRP data format
+    (key "jet_constituents"), loads the custom BitLinear models with the right
+    custom_objects, and overlays all runs on one figure. Launched by kai-roc-curves.yaml.
+
+    Two subcommands:
+      eval  load ONE saved model + a fixed held-out split, write {y, score} to .npz
+      plot  aggregate several .npz files into one overlaid ROC figure + AUC table
+
+    Why per-model processes: qkerasModel bakes BN_VARIANT / BN_ACT_BITS /
+    BN_SOFTMAX_FREE into module globals at import, and BitLinear/activation_quant read
+    them at call time. They are NOT stored in the layer configs, so each model must be
+    evaluated in a process whose env matches how it was trained. The launcher exports
+    the right env before each `eval` call.
+
+    No held-out test set was saved by training (validation_split=0.20 on an unseeded
+    shuffle), so this re-derives a fixed-seed held-out tail shared across all models.
+    Train~=val for these runs (negligible overfit), so the AUC reproduces the reported
+    val_auc to within seed noise; the tail is not a pristine never-seen set.
+    """
+    import argparse
+    import glob
+    import json
+    import os
+    import sys
+
+    import numpy as np
+
+    N_FEAT, N_PART = 14, 10
+    N_IN = N_FEAT * N_PART                      # 140 feature columns; +1 label column
+    PART_KEYS = ["jet_constituents", "Training Data"]   # mirror qkerasModel._read priority
+
+
+    def _read_h5(path, prefer):
+        import h5py
+        with h5py.File(path, "r") as hf:
+            for k in prefer:
+                if k in hf:
+                    return hf[k][:]
+            return hf[list(hf.keys())[0]][:]    # fall back to the sole dataset
+
+
+    def load_eval_split(sig, bkg, frac, seed, max_n):
+        data = np.concatenate([_read_h5(sig, PART_KEYS), _read_h5(bkg, PART_KEYS)], axis=0)
+        ncol = data.shape[1]
+        assert ncol == N_IN + 1, f"expected {N_IN + 1} columns (140 feats + label), got {ncol}"
+        idx = np.random.default_rng(seed).permutation(len(data))
+        data = data[idx]
+        n_eval = int(round(frac * len(data)))
+        data = data[-n_eval:]                    # fixed seed+frac -> identical rows for every model
+        if max_n and len(data) > max_n:
+            data = data[:max_n]
+        X = data[:, :N_IN].astype("float32").reshape(-1, N_PART, N_FEAT)
+        y = data[:, -1].astype("float32")
+        return X, y
+
+
+    def find_model(out_dir):
+        hits = [h for h in glob.glob(os.path.join(out_dir, "**", "*_bitnetJetTagModel.h5"),
+                                     recursive=True)
+                if "preS3" not in os.path.basename(h)]   # skip pre-stage3 checkpoints
+        if not hits:
+            raise FileNotFoundError(f"no *_bitnetJetTagModel.h5 under {out_dir}")
+        hits.sort(key=os.path.getmtime)
+        return hits[-1]
+
+
+    def load_trained_model(h5):
+        import tensorflow as tf
+        import qkerasModel as M   # reads BN_VARIANT/BN_ACT_BITS/... globals at import
+        co = {n: getattr(M, n) for n in
+              ("BitLinear", "RMSNorm", "BitMHSA", "BitFFN", "BitTransformerBlock",
+               "AbsMeanQuantizer") if hasattr(M, n)}
+        try:
+            return tf.keras.models.load_model(h5, custom_objects=co, compile=False), "load_model"
+        except Exception as e:                   # robust fallback: rebuild arch from env + load weights
+            sys.stderr.write(f"[roc] load_model failed ({e!r}); rebuilding + load_weights\n")
+            model = M.build_bitnet_jet_tagger()
+            model.load_weights(h5)
+            return model, "rebuild+load_weights"
+
+
+    def _runkey(meta):
+        if meta["variant"] == "vanilla":
+            return "FP32"
+        if meta["variant"] == "w8a8":
+            return "W8A8"
+        return f"A{meta['act_bits']}"            # bitnet -> A8 / A6 / A4
+
+
+    def cmd_eval(a):
+        os.environ.setdefault("MPLBACKEND", "Agg")
+        X, y = load_eval_split(a.sig, a.bkg, a.frac, a.seed, a.max_n)
+        h5 = find_model(a.out_dir)
+        model, how = load_trained_model(h5)
+        # ROC is invariant to any monotone map, so the raw logit is a valid score
+        # (no sigmoid -> no overflow). AUC is identical either way.
+        score = model.predict(X, batch_size=a.batch, verbose=0).reshape(-1)
+        from sklearn.metrics import roc_auc_score
+        meta = dict(label=a.label, auc=float(roc_auc_score(y, score)), n=int(len(y)),
+                    model=os.path.basename(h5), how=how,
+                    variant=os.environ.get("BN_VARIANT", "bitnet"),
+                    act_bits=int(os.environ.get("BN_ACT_BITS", "8")),
+                    softmax_free=os.environ.get("BN_SOFTMAX_FREE", "0"))
+        os.makedirs(os.path.dirname(os.path.abspath(a.npz)), exist_ok=True)
+        np.savez_compressed(a.npz, y=y.astype("float32"), score=score.astype("float32"),
+                            meta=json.dumps(meta))
+        print(f"[roc] {a.label:24s} AUC={meta['auc']:.4f}  n={meta['n']:>8d}  "
+              f"via {how}  ({meta['model']})")
+
+
+    COLORS = {"A8": "#56b4b0", "A6": "#e6a817", "A4": "#cf3bc4",
+              "W8A8": "#d2691e", "FP32": "#e87bd0"}
+    ORDER = {"A8": 0, "A6": 1, "A4": 2, "W8A8": 3, "FP32": 4}
+
+
+    def cmd_plot(a):
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from sklearn.metrics import roc_curve, auc as auc_of
+
+        files = sorted(glob.glob(a.glob))
+        if not files:
+            raise FileNotFoundError(f"no .npz match {a.glob}")
+        runs = []
+        for f in files:
+            d = np.load(f, allow_pickle=True)
+            m = json.loads(str(d["meta"]))
+            fpr, tpr, _ = roc_curve(d["y"], d["score"])
+            m.update(fpr=fpr, tpr=tpr, auc=float(auc_of(fpr, tpr)), key=_runkey(m))
+            runs.append(m)
+        runs.sort(key=lambda m: ORDER.get(m["key"], 99))
+
+        fig, (axL, axR) = plt.subplots(1, 2, figsize=(13, 5.4), dpi=150)
+        for m in runs:
+            c = COLORS.get(m["key"])
+            lab = f'{m["label"]}  (AUC={m["auc"]:.4f})'
+            axL.plot(m["fpr"], m["tpr"], color=c, lw=1.8, label=lab)
+            ok = m["fpr"] > 0
+            axR.plot(m["tpr"][ok], 1.0 / m["fpr"][ok], color=c, lw=1.8, label=lab)
+        axL.plot([0, 1], [0, 1], "k--", lw=0.8, alpha=0.6)
+        axL.set(xlabel="False positive rate (QCD mistag)",
+                ylabel="True positive rate (signal eff.)",
+                title="ROC", xlim=(0, 1), ylim=(0, 1))
+        axL.legend(loc="lower right", fontsize=8)
+        axL.grid(alpha=0.3)
+        axR.set_yscale("log")
+        axR.set(xlabel="Signal efficiency (TPR)",
+                ylabel="Background rejection  1/FPR",
+                title="ROC (HEP, log-y)", xlim=(0, 1))
+        axR.legend(loc="upper right", fontsize=8)
+        axR.grid(alpha=0.3, which="both")
+        fig.suptitle(a.title, fontsize=13)
+        fig.tight_layout(rect=[0, 0, 1, 0.96])
+        os.makedirs(os.path.dirname(os.path.abspath(a.png)), exist_ok=True)
+        fig.savefig(a.png)
+        print(f"[roc] wrote {a.png}")
+
+        rows = ["| run | variant | act bits | AUC | n_eval |", "|---|---|---|---|---|"]
+        rows += [f'| {m["label"]} | {m["variant"]} | {m["act_bits"]} | {m["auc"]:.4f} | {m["n"]} |'
+                 for m in runs]
+        table = "\n".join(rows) + "\n"
+        if a.table:
+            with open(a.table, "w") as fh:
+                fh.write(table)
+            print(f"[roc] wrote {a.table}")
+        print(table)
+
+
+    def main():
+        p = argparse.ArgumentParser(description="ROC curves for BitNet jet-tagger runs")
+        sub = p.add_subparsers(dest="cmd", required=True)
+
+        e = sub.add_parser("eval", help="evaluate one model -> .npz")
+        e.add_argument("--out-dir", required=True, help="run dir holding *_bitnetJetTagModel.h5")
+        e.add_argument("--sig", required=True)
+        e.add_argument("--bkg", required=True)
+        e.add_argument("--npz", required=True)
+        e.add_argument("--label", required=True)
+        e.add_argument("--frac", type=float, default=0.2)
+        e.add_argument("--seed", type=int, default=1234)
+        e.add_argument("--max-n", type=int, default=400000)
+        e.add_argument("--batch", type=int, default=8192)
+        e.set_defaults(fn=cmd_eval)
+
+        q = sub.add_parser("plot", help="aggregate .npz -> overlaid ROC png + table")
+        q.add_argument("--glob", required=True)
+        q.add_argument("--png", required=True)
+        q.add_argument("--table", default="")
+        q.add_argument("--title", default="BitNet jet tagger - ROC (fixed held-out split)")
+        q.set_defaults(fn=cmd_plot)
+
+        a = p.parse_args()
+        a.fn(a)
+
+
+    if __name__ == "__main__":
+        main()
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-roc-curves
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 7200      # 2h cap; inference-only over 5 small models
+  template:
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+      containers:
+      - name: roc
+        image: tensorflow/tensorflow:2.11.1   # CPU; exact TF used for training (no GPU needed)
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export MPLBACKEND=Agg
+          CODE=/data/BNJetTag
+          [ -d "$CODE" ] || CODE=/data/BNJetTagKai   # runbook clones to ...Kai; jobs use ...
+          export PYTHONPATH="$CODE:$PYTHONPATH"
+          SIG=/data/bnjet/train_merged/merged_trainPart.h5
+          BKG=/data/bnjet/QCD_Pt15To3000_Flat_PU200/Bkg_train.h5
+          ROCDIR=/data/outputs/roc
+          mkdir -p "$ROCDIR"
+          echo "[setup] $(date) deps"
+          pip install -q qkeras==0.9.0 "tensorflow==2.11.1" "matplotlib<3.8" scikit-learn h5py tensorflow-model-optimization
+          # Architecture env (shared by all 5 runs). VARIANT/ACT_BITS are set per-run below.
+          export BN_D_MODEL=256 BN_N_HEADS=8 BN_N_LAYERS=8 BN_FFN_DIM=1024 BN_SOFTMAX_FREE=0
+          roc_eval () {   # $1 label  $2 out-subdir  $3 variant  $4 act_bits
+            export BN_VARIANT="$3" BN_ACT_BITS="$4"
+            echo "[eval] $(date) $1  (variant=$3 act=$4)"
+            python -u /scripts/make_roc.py eval \
+              --out-dir "/data/outputs/$2" --sig "$SIG" --bkg "$BKG" \
+              --npz "$ROCDIR/$1.npz" --label "$1"
+          }
+          roc_eval A8-binary-softmax qk-paper-binary-sm-a8 bitnet  8
+          roc_eval A6-binary-softmax qk-paper-binary-sm-a6 bitnet  6
+          roc_eval A4-binary-softmax qk-paper-binary-sm-a4 bitnet  4
+          roc_eval W8A8-baseline     qk-w8a8               w8a8    8
+          roc_eval FP32-vanilla      qk-vanilla-fp32       vanilla 8
+          python -u /scripts/make_roc.py plot \
+            --glob "$ROCDIR/*.npz" --png "$ROCDIR/roc_overlay.png" --table "$ROCDIR/roc_auc.md"
+          echo "[done] $(date) -> $ROCDIR/roc_overlay.png"
+        resources:
+          limits:   {memory: 24Gi, cpu: "4"}
+          requests: {memory: 24Gi, cpu: "4"}
+        volumeMounts:
+        - {name: data,   mountPath: /data}
+        - {name: script, mountPath: /scripts}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kai-data
+      - name: script
+        configMap:
+          name: kai-roc-script

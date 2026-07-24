@@ -1,0 +1,60 @@
+Figures for the binary-weight transformer jet tagger.
+Accuracy from the per-jet arrays; hardware from the raw Vitis csynth reports.
+
+fig01  architecture; DSP census RF=8 (A8, norm-free): top-level glue=0, binary weight layers=0, glue / other=0, attention act x act=1600, softmax=100, pooling=64
+fig03  per-class ROC, round-8 arms, seed 1
+fig02  raw features           FP32               0.8255 +- 0.0008
+fig02  raw features           W8A8               0.8203 +- 0.0019
+fig02  raw features           W1A8 SubLN         0.7500 +- 0.0083
+fig02  raw features           W1A8 norm-free     0.6569 +- 0.0099
+fig02  standardized features  FP32               0.9161 +- 0.0009
+fig02  standardized features  W8A8               0.9151 +- 0.0009
+fig02  standardized features  W1A8 SubLN         0.8763 +- 0.0035
+fig02  standardized features  W1A8 norm-free     0.8902 +- 0.0067
+fig04  19,201 parameters    A8: 0.7500 +- 0.0083
+fig04  19,201 parameters    A6: 0.7362 +- 0.0095
+fig04  19,201 parameters    A4: 0.6561 +- 0.0412
+fig04  5,345 parameters     A8: 0.7321 +- 0.0183
+fig04  5,345 parameters     A6: 0.7117 +- 0.0229
+fig04  5,345 parameters     A4: 0.6548 +- 0.0080
+fig04  DSP RF=1 A8: total 14112, attention 12800
+fig04  DSP RF=1 A6: total 13984, attention 12800
+fig04  DSP RF=1 A4: total 7584, attention 6400
+fig04  DSP RF=8 A8: total 1764, attention 1600
+fig04  DSP RF=8 A6: total 1748, attention 1600
+fig04  DSP RF=8 A4: total 948, attention 800
+fig06  FP32                             eps=0.5:   47.8 +- 0.9
+fig06  FP32                             eps=0.7:   16.7 +- 0.3
+fig06  W8A8                             eps=0.5:   46.8 +- 0.7
+fig06  W8A8                             eps=0.7:   16.4 +- 0.2
+fig06  W1A8, norm-free                  eps=0.5:   31.0 +- 2.0
+fig06  W1A8, norm-free                  eps=0.7:   11.5 +- 0.6
+fig06  W1A8, SubLN                      eps=0.5:   24.6 +- 1.6
+fig06  W1A8, SubLN                      eps=0.7:    9.7 +- 0.4
+fig06  W1A8, norm-free + pairwise bias  eps=0.5:   32.8 +- 0.8
+fig06  W1A8, norm-free + pairwise bias  eps=0.7:   11.9 +- 0.2
+fig07  whole_model_rf1              DSP total 33,696  SubLN normalization=19584  attention act x act=12800  softmax=800  pooling=512
+fig07  whole_model_rf8_narrow       DSP total  6,900  SubLN normalization=5136  attention act x act=1600  softmax=100  pooling=64
+fig07  whole_model_rf1_stdnn        DSP total 14,112  attention act x act=12800  softmax=800  pooling=512
+fig07  whole_model_rf8_stdnn        DSP total  1,764  attention act x act=1600  softmax=100  pooling=64
+fig07  whole_model_rf1_w1a6         DSP total 13,984  attention act x act=12800  softmax=800  pooling=384
+fig07  whole_model_rf8_w1a6         DSP total  1,748  attention act x act=1600  softmax=100  pooling=48
+fig07  whole_model_rf1_w1a4         DSP total  7,584  attention act x act=6400  softmax=800  pooling=384
+fig07  whole_model_rf8_w1a4         DSP total    948  attention act x act=800  softmax=100  pooling=48
+fig09  whole_model_rf8_narrow           LUT total  5,209,569  top-level glue=117,064  SubLN normalization=2,101,371  binary weight layers=2,078,555  glue / other=189,567  attention act x act=664,276  softmax=42,140  pooling=16,596
+fig09  whole_model_rf8_stdnn            LUT total  3,910,515  top-level glue=218,825  binary weight layers=2,458,704  glue / other=374,675  attention act x act=789,076  softmax=42,190  pooling=27,045
+fig09  whole_model_da_rf8attn_stdnn     LUT total  4,529,888  top-level glue=377,111  binary weight layers=2,786,772  glue / other=493,715  attention act x act=789,076  softmax=42,190  pooling=41,024
+fig09  whole_model_rf1_stdnn            LUT total  4,804,714  top-level glue=214,006  binary weight layers=2,804,529  glue / other=374,675  attention act x act=1,032,960  softmax=337,520  pooling=41,024
+fig08  A8 SubLN, RF 1                 33,696 DSP   6,044,148 LUT   466 cyc  II= 1  2.157 ns  -> 1.005 us, 2.2 ns/jet
+fig08  A8 SubLN, RF 8                  6,900 DSP   5,209,569 LUT   615 cyc  II= 8  2.157 ns  -> 1.327 us, 17.3 ns/jet
+fig08  A8 SubLN fabric-norm, RF 8      1,764 DSP  12,040,312 LUT   572 cyc  II= 8  3.103 ns  -> 1.775 us, 24.8 ns/jet
+fig08  A8 SubLN fabric-norm, RF 10     1,424 DSP  11,935,845 LUT   596 cyc  II=10  3.103 ns  -> 1.849 us, 31.0 ns/jet
+fig08  A8 norm-free, RF 1             14,112 DSP   4,804,714 LUT   167 cyc  II= 1  2.157 ns  -> 0.360 us, 2.2 ns/jet
+fig08  A8 norm-free, RF 8              1,764 DSP   3,910,515 LUT   218 cyc  II= 8  2.157 ns  -> 0.470 us, 17.3 ns/jet
+fig08  A6, RF 8                        1,748 DSP  11,468,929 LUT   561 cyc  II= 8  3.103 ns  -> 1.741 us, 24.8 ns/jet
+fig08  A4, RF 8                          948 DSP  11,038,122 LUT   557 cyc  II= 8  3.103 ns  -> 1.728 us, 24.8 ns/jet
+fig05  g: rejection 23.9 -> 23.2 (-2.9%),  AUC 0.8883 -> 0.8866
+fig05  q: rejection 23.2 -> 23.5 (+1.1%),  AUC 0.8836 -> 0.8850
+fig05  W: rejection 18.2 -> 20.4 (+12.6%),  AUC 0.8830 -> 0.8883
+fig05  Z: rejection 22.1 -> 25.6 (+16.0%),  AUC 0.8712 -> 0.8760
+fig05  t: rejection 67.7 -> 71.5 (+5.6%),  AUC 0.9247 -> 0.9230

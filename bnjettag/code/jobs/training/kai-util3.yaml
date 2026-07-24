@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kai-util3
+  labels:
+    app: kai-util
+spec:
+  restartPolicy: Never
+  containers:
+  - name: util
+    image: alpine:3.19
+    command: ["sh", "-c", "sleep 86400"]
+    resources:
+      limits:
+        memory: 512Mi
+        cpu: "500m"
+      requests:
+        memory: 256Mi
+        cpu: "200m"
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: kai-data

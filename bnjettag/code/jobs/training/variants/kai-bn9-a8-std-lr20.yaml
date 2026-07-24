@@ -1,0 +1,154 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-bn9-a8-std-lr20
+  labels:
+    app: bnjet-r8
+    bnv: "std-lr20"
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 86400
+  template:
+    metadata:
+      labels:
+        app: bnjet-r8
+        bnv: "std-lr20"
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-A10
+                - NVIDIA-L4
+                - NVIDIA-GeForce-RTX-2080-Ti
+                - Tesla-V100-SXM2-32GB
+                - Tesla-V100-SXM2-16GB
+                - Tesla-V100-PCIE-16GB
+                - NVIDIA-RTX-A4000
+                - NVIDIA-TITAN-RTX
+                - Quadro-RTX-6000
+                - NVIDIA-RTX-5000-Ada-Generation
+                - NVIDIA-GeForce-RTX-3090
+                - NVIDIA-RTX-A5000
+                - NVIDIA-A40
+                - NVIDIA-RTX-A6000
+                - NVIDIA-L40
+                - NVIDIA-L40S
+                - NVIDIA-GeForce-RTX-4090
+                - NVIDIA-A100-SXM4-80GB
+                - NVIDIA-A100-80GB-PCIe
+                - NVIDIA-A100-PCIE-40GB
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A10, NVIDIA-L4, NVIDIA-GeForce-RTX-2080-Ti, NVIDIA-RTX-A4000]
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [Tesla-V100-SXM2-32GB, Tesla-V100-SXM2-16GB, Tesla-V100-PCIE-16GB, NVIDIA-GeForce-RTX-3090]
+      containers:
+      - name: train
+        image: tensorflow/tensorflow:2.11.1-gpu
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export MPLBACKEND=Agg
+          export TF_FORCE_GPU_ALLOW_GROWTH=true
+          mkdir -p /work/code /work/data /work/out/bitnet
+          cp /qkcode/qkerasModel.py /work/code/
+          grep -q "from __future__ import annotations" /work/code/qkerasModel.py || \
+            sed -i '1i from __future__ import annotations' /work/code/qkerasModel.py
+          export PYTHONPATH="/work/code:$PYTHONPATH"
+
+          # ---- STALE-CONFIGMAP GATE ------------------------------------------------------
+          # If the mounted code lacks the knob, BN_STANDARDIZE=1 is a SILENT NO-OP and this
+          # "treatment" run is secretly a second control. Fail loudly instead of lying.
+          grep -q "BN_STANDARDIZE" /work/code/qkerasModel.py || {
+            echo "[fatal] mounted qkerasModel.py has no BN_STANDARDIZE knob -> ConfigMap kai-qkerasmodel-r8 is STALE."
+            exit 1
+          }
+          echo "[code] md5=$(md5sum /work/code/qkerasModel.py | cut -d' ' -f1)  (expect the r8 code)"
+
+          echo "[setup] $(date) deps"
+          apt-get update -qq && apt-get install -y -qq graphviz
+          pip install -q qkeras==0.9.0 "tensorflow==2.11.1" "matplotlib<3.8" pandas seaborn mplhep pydot scikit-learn h5py wandb
+          nvidia-smi --query-gpu=name --format=csv,noheader || true
+          export WANDB_PROJECT=bnjettag-bitnet
+          export WANDB_RUN_NAME=r9-small-a8-std-lr20
+
+          echo "[data] $(date) fetching HLS4ML LHC Jet 150p TRAIN split from Zenodo (2.7 GB)"
+          python -u -c 'import urllib.request; urllib.request.urlretrieve(
+            "https://zenodo.org/records/3602260/files/hls4ml_LHCjet_150p_train.tar.gz?download=1",
+            "/work/data/train.tar.gz")'
+          sz=$(stat -c %s /work/data/train.tar.gz); echo "[data] tarball bytes: $sz"
+          [ "$sz" -gt 2500000000 ] || { echo "[fatal] train tarball too small"; exit 1; }
+          tar -xzf /work/data/train.tar.gz -C /work/data && rm /work/data/train.tar.gz
+          DATA=$(dirname "$(find /work/data -name 'jetImage_*.h5' -print -quit)")
+          [ -n "$DATA" ] || { echo "[fatal] no jetImage_*.h5 after extract"; exit 1; }
+
+          # ---- This LR COLLAPSED the raw binary model (best epoch 3). If standardization has fixed the conditioning, it should now be trainable — that is itself evidence for the mechanism. ----
+          export BN_D_MODEL=32 BN_N_HEADS=4 BN_N_LAYERS=2 BN_FFN_DIM=64
+          export BN_N_PART=10
+          export BN_LR=0.0002
+          export BN_WARMUP_EPOCHS=3
+          export BN_DECAY_EPOCHS=120
+          export BN_DECAY_POWER=1.0
+          export BN_BETA2=0.98
+          export BN_WEIGHT_DECAY=0.01
+          export BN_CLIPNORM=1.0
+          export BN_L1_REG=0
+          export BN_BATCH=256
+          export BN_ES_MONITOR=val_auc
+          export BN_ES_MODE=max
+          export BN_ES_PATIENCE=25
+          export BN_VARIANT=bitnet BN_ACT_BITS=8 BN_SEED=1
+          export BN_STANDARDIZE=1
+
+          echo "[preflight] $(date) --sanity (includes the standardizer self-test) + param gate"
+          env CUDA_VISIBLE_DEVICES=-1 python -u /work/code/qkerasModel.py --sanity 2>&1 | tail -8
+          env CUDA_VISIBLE_DEVICES=-1 python -u - <<'PYGATE'
+          import qkerasModel as M
+          n = M.build_bitnet_jet_tagger().count_params()
+          assert n == 18405, f"PARAM GATE FAILED: {n} != 18405"
+          assert M.STANDARDIZE == (1 == 1), "BN_STANDARDIZE did not reach the module"
+          print(f"[gate] params={n} standardize={M.STANDARDIZE} OK")
+          PYGATE
+          echo "[train] $(date) r9-small-a8-std-lr20  variant=bitnet A8 STANDARDIZE=1  D=32 L=2 params=18405"
+          cd /work/out
+          python -u /work/code/qkerasModel.py "$DATA" 2>&1 | tee /work/out/train_std-lr20.log
+          echo "[done] $(date) r9-small-a8-std-lr20"
+        env:
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kai-wandb
+              key: WANDB_API_KEY
+        resources:
+          limits:   {nvidia.com/gpu: "1", memory: 8Gi, cpu: "2", ephemeral-storage: 24Gi}
+          requests: {nvidia.com/gpu: "1", memory: 8Gi, cpu: "2", ephemeral-storage: 20Gi}
+        volumeMounts:
+        - name: qkcode
+          mountPath: /qkcode
+        - name: work
+          mountPath: /work
+      volumes:
+      - name: qkcode
+        configMap:
+          name: kai-qkerasmodel-r8
+      - name: work
+        emptyDir:
+          sizeLimit: 24Gi

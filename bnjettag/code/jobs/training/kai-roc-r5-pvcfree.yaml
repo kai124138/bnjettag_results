@@ -1,0 +1,168 @@
+# kai-roc-r5-pvcfree.yaml — round-5 ROC-test WITHOUT the kai-data PVC.
+#
+# Written 2026-07-02 during the kai-data ceph incident (PVC unmountable cluster-wide;
+# see experiment-log entry of the same date). Same evaluation as kai-roc-r5.yaml —
+# identical embedded make_roc.py (ConfigMap kai-roc-script-r5, applied from
+# kai-roc-r5.yaml and referenced here) and identical BN_* env — but every PVC
+# dependency is replaced by a network source:
+#   * trained checkpoints  : downloaded from W&B (training's wandb.save uploaded the
+#                            best-epoch *_bitnetJetTagModel.h5 to each r5-* run)
+#   * held-out eval data   : hls4ml_LHCjet_150p_val.tar.gz from Zenodo record 3602260
+#                            (the SAME public val split staged at /data/hls4ml_lhc_jet/val)
+#   * qkerasModel.py       : ConfigMap kai-qkerasmodel-r5 (created from the local copy,
+#                            md5 4d0a3fed43d92b374168a5a84d0f45d1 = the code that trained)
+#   * output .npz/.md/.png : uploaded to W&B run "r5-roc-pvcfree-artifacts" (durable copy;
+#                            fetch locally from W&B, then verify as usual)
+#
+# Prereqs (both already on the cluster; commands to recreate if ever missing):
+#   kubectl apply -f kai-roc-r5.yaml -n cms-ml            # provides ConfigMap kai-roc-script-r5
+#   kubectl create configmap kai-qkerasmodel-r5 -n cms-ml \
+#     --from-file=qkerasModel.py=../../training/qkerasModel.py
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-roc-r5-pvcfree
+  labels:
+    app: kai-roc
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 28800
+  template:
+    metadata:
+      labels:
+        app: kai-roc
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+      containers:
+      - name: roc
+        image: tensorflow/tensorflow:2.11.1   # CPU; exact TF used for training
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export MPLBACKEND=Agg
+          mkdir -p /work/code /work/models /work/roc /work/data
+          cp /qkcode/qkerasModel.py /work/code/
+          export PYTHONPATH="/work/code:$PYTHONPATH"
+          echo "[setup] $(date) deps"
+          pip install -q qkeras==0.9.0 "tensorflow==2.11.1" "matplotlib<3.8" scikit-learn h5py tensorflow-model-optimization wandb
+          export WANDB_PROJECT=bnjettag-bitnet
+
+          echo "[data] $(date) fetching HLS4ML LHC Jet 150p val split from Zenodo (1.14 GB)"
+          python -u -c 'import urllib.request; urllib.request.urlretrieve(
+            "https://zenodo.org/records/3602260/files/hls4ml_LHCjet_150p_val.tar.gz?download=1",
+            "/work/data/val.tar.gz")'
+          sz=$(stat -c %s /work/data/val.tar.gz); echo "[data] tarball bytes: $sz"
+          [ "$sz" -gt 1000000000 ] || { echo "[fatal] val tarball too small"; exit 1; }
+          tar -xzf /work/data/val.tar.gz -C /work/data
+          DATA=$(dirname "$(find /work/data -name 'jetImage_*.h5' -print -quit)")
+          [ -n "$DATA" ] || { echo "[fatal] no jetImage_*.h5 after extract"; exit 1; }
+          echo "[data] DATA=$DATA ($(ls "$DATA" | wc -l) files)"
+
+          echo "[fetch] $(date) checkpoints from W&B"
+          python -u - <<'PYEOF'
+          import os, wandb
+          api = wandb.Api(timeout=120)
+          EP = "kayamaguchi-uc-san-diego/bnjettag-bitnet"
+          RUNS = {  # out-dir under /work/models -> W&B run display name
+              "large-lr05-s1":    "r5-large-lr05-s1",
+              "large-lr05-s2":    "r5-large-lr05-s2",
+              "large-lr05-a6-s1": "r5-large-lr05-a6-s1",
+              "large-lr05-a6-s2": "r5-large-lr05-a6-s2",
+              "large-lr05-a4-s1": "r5-large-lr05-a4-s1",
+              "large-lr05-a4-s2": "r5-large-lr05-a4-s2",
+              "fp32-lr05":        "r5-fp32-lr05",
+              "w8a8-lr05":        "r5-w8a8-lr05",
+          }
+          for outdir, name in RUNS.items():
+              rs = list(api.runs(EP, filters={"display_name": name}))
+              assert len(rs) == 1, f"{name}: {len(rs)} W&B runs match"
+              fs = [f for f in rs[0].files() if f.name.endswith("bitnetJetTagModel.h5")]
+              assert len(fs) == 1, f"{name}: {len(fs)} checkpoint files"
+              tgt = f"/work/models/{outdir}"
+              os.makedirs(tgt, exist_ok=True)
+              fs[0].download(root=tgt, replace=True)
+              print(f"[fetch] {name} -> {tgt}/{fs[0].name} ({fs[0].size/1e6:.1f} MB)", flush=True)
+          PYEOF
+
+          # Architecture FIXED at large (decision 2026-06-29): D256/L8/H8/F1024.
+          # Dataset migration (2026-07-01): 10x16 input (top-10 by pT), 5-class head.
+          export BN_D_MODEL=256 BN_N_HEADS=8 BN_N_LAYERS=8 BN_FFN_DIM=1024 BN_SOFTMAX_FREE=0
+          export BN_N_PART=10
+          ROCDIR=/work/roc
+          roc_eval () {   # $1 label  $2 out-dir (absolute)  $3 variant  $4 act_bits
+            if [ -z "$(find "$2" -name '*_bitnetJetTagModel.h5' -print -quit 2>/dev/null)" ]; then
+              echo "[skip] $1 — no checkpoint under $2"
+              return 0
+            fi
+            export BN_VARIANT="$3" BN_ACT_BITS="$4"
+            echo "[eval] $(date) $1  (variant=$3 act=$4)"
+            python -u /scripts/make_roc.py eval \
+              --out-dir "$2" --data "$DATA" \
+              --npz "$ROCDIR/$1.npz" --label "$1" --wandb
+          }
+          R5=/work/models
+          roc_eval A8-lr05-s1  "$R5/large-lr05-s1"    bitnet  8
+          roc_eval A8-lr05-s2  "$R5/large-lr05-s2"    bitnet  8
+          roc_eval A6-lr05-s1  "$R5/large-lr05-a6-s1" bitnet  6
+          roc_eval A6-lr05-s2  "$R5/large-lr05-a6-s2" bitnet  6
+          roc_eval A4-lr05-s1  "$R5/large-lr05-a4-s1" bitnet  4
+          roc_eval A4-lr05-s2  "$R5/large-lr05-a4-s2" bitnet  4
+          roc_eval FP32-lr05   "$R5/fp32-lr05"        vanilla 8
+          roc_eval W8A8-lr05   "$R5/w8a8-lr05"        w8a8    8
+          python -u /scripts/make_roc.py plot \
+            --glob "$ROCDIR/*.npz" --png "$ROCDIR/roc_overlay.png" \
+            --table "$ROCDIR/roc_auc.md" \
+            --title "BitNet jet tagger - ROC, HLS4ML LHC Jet 150p (held-out val), LR 5e-5" --wandb
+
+          echo "[upload] $(date) durable copies -> W&B run r5-roc-pvcfree-artifacts"
+          python -u - <<'PYEOF'
+          import glob, wandb
+          run = wandb.init(project="bnjettag-bitnet", name="r5-roc-pvcfree-artifacts",
+                           job_type="roc-artifacts")
+          for p in sorted(glob.glob("/work/roc/*")):
+              wandb.save(p, base_path="/work/roc", policy="now")
+              print("[upload]", p, flush=True)
+          run.finish()
+          PYEOF
+          echo "[done] $(date) ROC complete; artifacts on W&B (r5-roc-pvcfree-artifacts)"
+        env:
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kai-wandb
+              key: WANDB_API_KEY
+        resources:
+          requests:
+            cpu: "8"
+            memory: 24Gi
+            ephemeral-storage: 10Gi
+          limits:
+            cpu: "9"
+            memory: 28Gi
+            ephemeral-storage: 12Gi
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        - name: qkcode
+          mountPath: /qkcode
+        - name: work
+          mountPath: /work
+      volumes:
+      - name: scripts
+        configMap:
+          name: kai-roc-script-r5      # from kai-roc-r5.yaml (byte-identical make_roc.py)
+      - name: qkcode
+        configMap:
+          name: kai-qkerasmodel-r5     # created from local qkerasModel.py (md5 4d0a3fed…)
+      - name: work
+        emptyDir:
+          sizeLimit: 30Gi

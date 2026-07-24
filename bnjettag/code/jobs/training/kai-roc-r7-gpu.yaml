@@ -1,0 +1,202 @@
+# kai-roc-r7-gpu.yaml — ROUND-7 held-out ROC/eval, GPU + PVC-FREE.
+#
+# The held-out test pass for the 30 round-7 deployable-scale checkpoints (r7/README.md).
+# Mirrors the proven kai-roc-final-gpu.yaml (python:3.12 + tensorflow[and-cuda]==2.21.0
+# pip wheels + the LD_LIBRARY_PATH-over-nvidia-wheels fix; Zenodo val tarball with the
+# >1e9 guard; ConfigMap kai-bnf-code source; BAD_NODES-fenced affinity; backoffLimit 2)
+# and adds the round-7 SIZE axis via roc_final.py's --sizes / --run-prefix knobs:
+#   * matrix: sizes {small,tiny} × variants {fp32,w8a8,w1a8,w1a6,w1a4} × seeds {1,2,3} = 30
+#   * ckpts : CKPT_SOURCE=wandb — runs r7-<size>-<variant>-s<seed> in project bnjettag-final
+#             (file <size>-<variant>-s<seed>/model_best.keras; download-by-basename)
+#   * data  : Zenodo hls4ml_LHCjet_150p_val.tar.gz — the SAME held-out val split as final,
+#             so the n=260000 assert is unchanged
+#   * out   : 30 npz (<SIZE>-<VARIANT>-s<seed>.npz, keys y/score/meta) + roc_auc.md
+#             (per-seed + seed-averaged per size×variant, labeled round-7 · era-2 · ROC-test)
+#             + roc_overlay_SMALL.png + roc_overlay_TINY.png (FPR log axis)
+#             -> W&B run r7-roc-artifacts (project bnjettag-final). NO PVC volume anywhere.
+#
+# byte-identity: --sizes/--run-prefix default to the final campaign's behaviour; this job
+# passes them explicitly. roc_final.py extension gated locally (py_compile + build->save->
+# fresh-load->eval round-trip + final-table byte-identity, .venv-hgq2, 2026-07-14).
+#
+# Prereq: ./variants/make_code_configmap.sh   (repacks code/hgq2 -> ConfigMap kai-bnf-code,
+#         INCLUDING the round-7 roc_final.py — MUST be re-run so the pod gets the new code)
+# Apply : kubectl apply -f kai-roc-r7-gpu.yaml -n cms-ml
+# Watch : kubectl logs -f job/kai-roc-r7-gpu -n cms-ml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-roc-r7-gpu
+  labels:
+    app: kai-roc-r7
+    bnf: "roc-r7-gpu"
+spec:
+  # backoffLimit 2 (matches the training template): a node-level GPU device-plugin race
+  # (UnexpectedAdmissionError) can kill a container before it starts — retry past it.
+  backoffLimit: 2
+  activeDeadlineSeconds: 14400
+  template:
+    metadata:
+      labels:
+        app: kai-roc-r7
+        bnf: "roc-r7-gpu"
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values: [k8s-chase-ci-07.calit2.optiputer.net, ry-gpu-08.sdsc.optiputer.net, suncave-1, suncave-2, suncave-3, suncave-4, suncave-5, suncave-6, suncave-7, suncave-8, suncave-9, suncave-10, suncave-11, suncave-12, suncave-13, suncave-14, suncave-15, suncave-16, suncave-17, suncave-18, suncave-19, suncave-20]
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-A100-SXM4-80GB
+                - NVIDIA-A100-80GB-PCIe
+                - NVIDIA-A100-PCIE-40GB
+                - NVIDIA-H100-80GB-HBM3
+                - NVIDIA-H200-NVL
+                - NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition
+                - NVIDIA-GeForce-RTX-4090
+                - NVIDIA-L40S
+                - NVIDIA-L40
+                - NVIDIA-RTX-A6000
+                - NVIDIA-A40
+                - NVIDIA-RTX-A5000
+                - NVIDIA-GeForce-RTX-3090
+                # eval-only widening (2026-07-08): the training-tier pool had 0 free
+                # GPUs for 4h (job deadline-exceeded while Pending). A10/L4/V100
+                # pools are large and ample for batched inference (sm_70+ in TF 2.21).
+                - NVIDIA-A10
+                - NVIDIA-L4
+                - Tesla-V100-SXM2-32GB
+                - Tesla-V100-SXM2-16GB
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # round-7 models are tiny (<=19k params); PREFER the abundant mid/entry-tier and
+          # keep flagships as last resort — a batched-inference pass needs no A100/H100.
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A10, NVIDIA-L4, Tesla-V100-SXM2-32GB, Tesla-V100-SXM2-16GB, NVIDIA-A40, NVIDIA-RTX-A5000, NVIDIA-GeForce-RTX-3090]
+          - weight: 60
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-GeForce-RTX-4090, NVIDIA-L40S, NVIDIA-L40, NVIDIA-RTX-A6000]
+          - weight: 20
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A100-SXM4-80GB, NVIDIA-A100-80GB-PCIe, NVIDIA-A100-PCIE-40GB]
+          - weight: 10
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-H200-NVL, NVIDIA-H100-80GB-HBM3, NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition]
+      containers:
+      - name: roc
+        image: python:3.12
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export KERAS_BACKEND=tensorflow MPLBACKEND=Agg TF_FORCE_GPU_ALLOW_GROWTH=true
+          export WANDB_PROJECT=bnjettag-final WANDB_ENTITY=kayamaguchi-uc-san-diego
+          mkdir -p /work/code /work/data /work/outputs
+          CODE=/work/code
+          OUT=/work/outputs/roc
+          mkdir -p "$OUT"
+          echo "[code] $(date) unpack code from ConfigMap kai-bnf-code (PVC-free)"
+          tar -xzf /cmcode/hgq2.tar.gz -C "$CODE" --strip-components=1
+          md5sum /cmcode/hgq2.tar.gz | awk '{print "[code] configmap tar md5:", $1}'
+          [ -f "$CODE/roc_final.py" ] || { echo "[fatal] roc_final.py missing in ConfigMap"; exit 1; }
+          [ -f "$CODE/hls_templates/nnet_subln.h" ] || { echo "[fatal] hls_templates/nnet_subln.h missing (register_subln needs it)"; exit 1; }
+          export PYTHONPATH="$CODE:$PYTHONPATH"
+          echo "[setup] $(date) pinned deps (mirror .venv-hgq2; + matplotlib for the ROC overlay)"
+          pip install -q --no-cache-dir "tensorflow[and-cuda]==2.21.0" "keras==3.15.0" "hgq2==0.1.9" "quantizers==1.2.2" "scikit-learn==1.9.0" "h5py==3.14.0" "wandb==0.28.0" "hls4ml==1.3.0" "numpy==2.5.0" "matplotlib==3.11.0"
+          # TF 2.21 pip wheel's RPATH discovery of the nvidia-*-cu12 wheel libs is broken
+          # (debug-pod evidence 2026-07-07); explicit LD_LIBRARY_PATH over the wheel lib dirs fixes it.
+          NVLIBS=$(python -c "import glob; print(':'.join(sorted(glob.glob('/usr/local/lib/python*/site-packages/nvidia/*/lib'))))")
+          export LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          echo "[gpu] $(date) nvidia-smi + TF backend assertion"
+          nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || { echo "[fatal] no nvidia-smi / GPU"; exit 1; }
+          python -c "import os; os.environ.setdefault('KERAS_BACKEND','tensorflow'); import tensorflow as tf; g=tf.config.list_physical_devices('GPU'); assert g, 'NO GPU visible to TensorFlow'; print('[gpu] TF sees', g)"
+
+          echo "[data] $(date) fetch HLS4ML LHC Jet 150p VAL split from Zenodo (~1.14 GB, PVC-free)"
+          python -u -c 'import urllib.request; urllib.request.urlretrieve("https://zenodo.org/records/3602260/files/hls4ml_LHCjet_150p_val.tar.gz?download=1", "/work/data/val.tar.gz")'
+          sz=$(stat -c %s /work/data/val.tar.gz); echo "[data] tarball bytes: $sz"
+          [ "$sz" -gt 1000000000 ] || { echo "[fatal] val tarball too small ($sz < 1e9)"; exit 1; }
+          tar -xzf /work/data/val.tar.gz -C /work/data && rm -f /work/data/val.tar.gz
+          DATA=$(dirname "$(find /work/data -name 'jetImage_*.h5' -print -quit)")
+          [ -n "$DATA" ] || { echo "[fatal] no jetImage_*.h5 after extract"; exit 1; }
+          echo "[data] DATA=$DATA ($(ls "$DATA" | wc -l) files)"
+
+          export BN_N_PART=10
+          echo "[eval] $(date) round-7 matrix on GPU (2 sizes × 5 variants × 3 seeds = 30; CKPT_SOURCE=${CKPT_SOURCE:-wandb} batch=${EVAL_BATCH:-4096})"
+          python -u "$CODE/roc_final.py" eval-all \
+            --data "$DATA" \
+            --ckpt-source "${CKPT_SOURCE:-wandb}" \
+            --run-prefix r7 --sizes small,tiny \
+            --wandb-project bnjettag-final --entity kayamaguchi-uc-san-diego \
+            --workdir /work/ckpt_dl \
+            --out "$OUT" \
+            --expect-n 260000 --batch "${EVAL_BATCH:-4096}" \
+            --table-title "# round-7 · era-2 data · ROC-test AUC (deployable-scale HLS4ML LHC Jet, 5-class)" \
+            --table-source "# source : recomputed from r7/roc-results/*.npz (y, score)" \
+            --title "round-7 BitNet jet tagger — ROC (era-2 HLS4ML LHC Jet, held-out val, 2 sizes × 5 variants × 3 seeds)"
+
+          echo "[upload] $(date) durable copies -> W&B run r7-roc-artifacts (project bnjettag-final)"
+          python -u - <<'PYEOF'
+          import glob, os, wandb
+          run = wandb.init(project="bnjettag-final", name="r7-roc-artifacts",
+                           job_type="roc-artifacts")
+          for p in sorted(glob.glob("/work/outputs/roc/*")):
+              if os.path.isfile(p):
+                  wandb.save(p, base_path="/work/outputs/roc", policy="now")
+                  print("[upload]", p, flush=True)
+          run.finish()
+          PYEOF
+          echo "[done] $(date) round-7 ROC (GPU, PVC-free) complete -> W&B r7-roc-artifacts"
+        env:
+        - name: CKPT_SOURCE
+          value: "wandb"               # PVC-free: checkpoints live only on W&B
+        - name: EVAL_BATCH
+          value: "4096"  # round-7 models are tiny (<=19k params) — 4096 is fast + safe on any listed GPU
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kai-wandb
+              key: WANDB_API_KEY
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+            cpu: "4"
+            memory: 24Gi
+            ephemeral-storage: 24Gi
+          requests:
+            nvidia.com/gpu: "1"
+            cpu: "4"
+            memory: 24Gi
+            ephemeral-storage: 24Gi
+        volumeMounts:
+        - name: cmcode
+          mountPath: /cmcode
+        - name: work
+          mountPath: /work
+      volumes:
+      - name: cmcode
+        configMap:
+          name: kai-bnf-code
+      - name: work
+        emptyDir:
+          sizeLimit: 24Gi

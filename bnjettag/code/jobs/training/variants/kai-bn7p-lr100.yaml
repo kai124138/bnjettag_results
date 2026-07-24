@@ -1,0 +1,156 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-bn7p-lr100
+  labels:
+    app: bnjet-r7-probe
+    bnv: "probe-lr100"
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 86400
+  template:
+    metadata:
+      labels:
+        app: bnjet-r7-probe
+        bnv: "probe-lr100"
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-A10
+                - NVIDIA-L4
+                - NVIDIA-GeForce-RTX-2080-Ti
+                - Tesla-V100-SXM2-32GB
+                - Tesla-V100-SXM2-16GB
+                - Tesla-V100-PCIE-16GB
+                - NVIDIA-RTX-A4000
+                - NVIDIA-TITAN-RTX
+                - Quadro-RTX-6000
+                - NVIDIA-RTX-5000-Ada-Generation
+                - NVIDIA-GeForce-RTX-3090
+                - NVIDIA-RTX-A5000
+                - NVIDIA-A40
+                - NVIDIA-RTX-A6000
+                - NVIDIA-L40
+                - NVIDIA-L40S
+                - NVIDIA-GeForce-RTX-4090
+                - NVIDIA-A100-SXM4-80GB
+                - NVIDIA-A100-80GB-PCIe
+                - NVIDIA-A100-PCIE-40GB
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # prefer the plentiful mid-tier first — these jobs do not need more.
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A10, NVIDIA-L4, NVIDIA-GeForce-RTX-2080-Ti, NVIDIA-RTX-A4000]
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [Tesla-V100-SXM2-32GB, Tesla-V100-SXM2-16GB, Tesla-V100-PCIE-16GB, NVIDIA-GeForce-RTX-3090]
+          - weight: 40
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-RTX-A5000, NVIDIA-A40, NVIDIA-RTX-A6000, NVIDIA-L40, NVIDIA-TITAN-RTX]
+      containers:
+      - name: train
+        image: tensorflow/tensorflow:2.11.1-gpu
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export MPLBACKEND=Agg
+          export TF_FORCE_GPU_ALLOW_GROWTH=true
+          mkdir -p /work/code /work/data /work/out/bitnet
+          cp /qkcode/qkerasModel.py /work/code/
+          # py3.8 in the TF 2.11 image: make sure modern annotations don't crash import
+          grep -q "from __future__ import annotations" /work/code/qkerasModel.py || \
+            sed -i '1i from __future__ import annotations' /work/code/qkerasModel.py
+          export PYTHONPATH="/work/code:$PYTHONPATH"
+          echo "[setup] $(date) deps"
+          apt-get update -qq && apt-get install -y -qq graphviz
+          pip install -q qkeras==0.9.0 "tensorflow==2.11.1" "matplotlib<3.8" pandas seaborn mplhep pydot scikit-learn h5py wandb
+          nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
+          export WANDB_PROJECT=bnjettag-bitnet
+          export WANDB_RUN_NAME=r7p-small-a8-lr100
+
+          echo "[data] $(date) fetching HLS4ML LHC Jet 150p TRAIN split from Zenodo (2.7 GB)"
+          python -u -c 'import urllib.request; urllib.request.urlretrieve(
+            "https://zenodo.org/records/3602260/files/hls4ml_LHCjet_150p_train.tar.gz?download=1",
+            "/work/data/train.tar.gz")'
+          sz=$(stat -c %s /work/data/train.tar.gz); echo "[data] tarball bytes: $sz"
+          [ "$sz" -gt 2500000000 ] || { echo "[fatal] train tarball too small"; exit 1; }
+          tar -xzf /work/data/train.tar.gz -C /work/data && rm /work/data/train.tar.gz
+          DATA=$(dirname "$(find /work/data -name 'jetImage_*.h5' -print -quit)")
+          [ -n "$DATA" ] || { echo "[fatal] no jetImage_*.h5 after extract"; exit 1; }
+          echo "[data] DATA=$DATA ($(ls "$DATA" | wc -l) files)"
+
+          # ---- LR PROBE (20x the r5 LR (~the BitNet paper's peak)) — binary W1A8 @ small, r5 recipe otherwise. ----
+          # deployable scale `small` -> 18405 params (round-7, 2026-07-13)
+          export BN_D_MODEL=32 BN_N_HEADS=4 BN_N_LAYERS=2 BN_FFN_DIM=64
+          export BN_N_PART=10
+          export BN_WARMUP_EPOCHS=1 BN_DECAY_EPOCHS=40 BN_DECAY_POWER=1.0 BN_BETA2=0.98 BN_WEIGHT_DECAY=0.01 BN_CLIPNORM=1.0 BN_L1_REG=0 BN_BATCH=256 BN_ES_MONITOR=val_auc BN_ES_MODE=max BN_ES_PATIENCE=10 BN_LR=0.001
+          export BN_VARIANT=bitnet BN_ACT_BITS=8 BN_SEED=1
+
+          echo "[preflight] $(date) --sanity build + param-count gate"
+          env CUDA_VISIBLE_DEVICES=-1 python -u /work/code/qkerasModel.py --sanity 2>&1 | tail -5
+          env CUDA_VISIBLE_DEVICES=-1 python -u - <<'PYGATE'
+          import qkerasModel as M
+          n = M.build_bitnet_jet_tagger().count_params()
+          print(f"[params] built={n} expected=18405")
+          assert n == 18405, f"PARAM GATE FAILED: {n} != 18405"
+          print("[params] OK")
+          PYGATE
+          echo "[train] $(date) r7p-small-a8-lr100  size=small D=32 H=4 L=2 FFN=64 params=18405  BN_VARIANT=bitnet,BN_ACT_BITS=8,BN_SEED=1,BN_LR=0.001"
+          cd /work/out
+          python -u /work/code/qkerasModel.py "$DATA" 2>&1 | tee /work/out/train_probe-lr100.log
+          echo "[done] $(date) r7p-small-a8-lr100"
+        env:
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kai-wandb
+              key: WANDB_API_KEY
+        # Right-sized for deployable scale. The `large` rounds asked for 24Gi/4cpu; that was
+        # blocking us on 55 more nodes for no reason. load_hls4ml_jets slices to n_part=10 as
+        # it reads (qkerasModel.py:783), so the resident dataset is (~880k,10,16) f32 ~= 0.6 GB;
+        # peak with the concatenate + one file's full 150-particle array is ~2 GB. 8Gi is 4x
+        # headroom. ephemeral-storage stays 20/24Gi: the 2.7 GB tarball + extract + pip need it,
+        # and it was never a binding constraint.
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+            memory: 8Gi
+            cpu: "2"
+            ephemeral-storage: 24Gi
+          requests:
+            nvidia.com/gpu: "1"
+            memory: 8Gi
+            cpu: "2"
+            ephemeral-storage: 20Gi
+        volumeMounts:
+        - name: qkcode
+          mountPath: /qkcode
+        - name: work
+          mountPath: /work
+      volumes:
+      - name: qkcode
+        configMap:
+          name: kai-qkerasmodel-r5
+      - name: work
+        emptyDir:
+          sizeLimit: 24Gi

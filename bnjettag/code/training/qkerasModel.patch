@@ -1,0 +1,186 @@
+--- /tmp/BNJetTag-inspect/qkerasModel.py	2026-06-22 14:09:20
++++ code/qkerasModel.py	2026-06-22 14:18:09
+@@ -68,14 +68,16 @@
+ N_PART_PER_JET  = 10
+ 
+ # ─────────────────────────────────────────────
+-# Hyperparameters  (tunable)
++# Hyperparameters  (tunable; overridable via env for NRP multi-size runs)
+ # ─────────────────────────────────────────────
+-D_MODEL    = 32   # embedding dimension  (keep small for L1 latency)
+-N_HEADS    = 4    # attention heads      (D_MODEL must be divisible by N_HEADS)
+-N_LAYERS   = 2    # transformer blocks
+-FFN_DIM    = 64   # feed-forward hidden dim  (typically 2–4 × D_MODEL)
+-DROPOUT    = 0.0  # set >0 only if overfitting is observed
+-L1_REG     = 1e-4 # matches your original regularisation
++D_MODEL    = int(os.environ.get("BN_D_MODEL",  32))   # embedding dimension
++N_HEADS    = int(os.environ.get("BN_N_HEADS",  4))    # attention heads (D_MODEL % N_HEADS == 0)
++N_LAYERS   = int(os.environ.get("BN_N_LAYERS", 2))    # transformer blocks
++FFN_DIM    = int(os.environ.get("BN_FFN_DIM",  64))   # feed-forward hidden dim (2-4 x D_MODEL)
++DROPOUT    = float(os.environ.get("BN_DROPOUT", 0.0)) # set >0 only if overfitting is observed
++L1_REG     = float(os.environ.get("BN_L1_REG", 1e-4)) # matches original regularisation
++EPOCHS     = int(os.environ.get("BN_EPOCHS", 200))    # max epochs (EarlyStopping may stop sooner)
++BATCH_SIZE = int(os.environ.get("BN_BATCH",  50))     # batch size
+ 
+ 
+ # ══════════════════════════════════════════════════════════════════════════════
+@@ -438,26 +440,37 @@
+     print("Reading signal jet data from " + sig_jetData_TrainFile)
+     print("Reading background jet data from " + bkg_jetData_TrainFile)
+ 
+-    # ── Load data  (unchanged from your original script) ─────────────────────
+-    with h5py.File(signalTrainFile,       "r") as hf:
+-        dataset      = hf["Training Data"][:]
+-    with h5py.File(bkgTrainFile,          "r") as hf:
+-        datasetQCD   = hf["Training Data"][:]
+-    with h5py.File(sig_jetData_TrainFile, "r") as hf:
+-        sampleData   = hf["Sample Data"][:]
+-    with h5py.File(bkg_jetData_TrainFile, "r") as hf:
+-        sampleDataQCD= hf["Sample Data"][:]
++    # ── Load data ────────────────────────────────────────────────────────────
++    # NRP volume data uses HDF5 keys 'jet_constituents' (particle inputs,
++    # shape [N,141] = 10*14 feats + 1 label col) and 'train_jet_data'
++    # (jet features [N,4] = pT,eta,phi,mass). The upstream repo's dataForge.py
++    # instead writes 'Training Data' / 'Sample Data', so read whichever exists.
++    def _read(path, prefer):
++        with h5py.File(path, "r") as hf:
++            for k in prefer:
++                if k in hf:
++                    return hf[k][:]
++            return hf[list(hf.keys())[0]][:]   # fall back to the sole dataset
+ 
+-    dataset    = np.concatenate((dataset, datasetQCD))
+-    sampleData = np.concatenate((sampleData, sampleDataQCD))
++    PART_KEYS = ["jet_constituents", "Training Data"]
++    JET_KEYS  = ["train_jet_data",   "Sample Data"]
++    dataset       = _read(signalTrainFile,       PART_KEYS)
++    datasetQCD    = _read(bkgTrainFile,          PART_KEYS)
++    sampleData    = _read(sig_jetData_TrainFile, JET_KEYS)
++    sampleDataQCD = _read(bkg_jetData_TrainFile, JET_KEYS)
++
++    dataset    = np.concatenate((dataset, datasetQCD))        # (N, n_part_cols)
++    sampleData = np.concatenate((sampleData, sampleDataQCD))  # (N, n_jet_cols)
++    n_part_cols = dataset.shape[1]                            # 141 = 140 feats + label
++
++    # Shuffle particle rows together with their matching jet features.
+     fullData   = np.concatenate((dataset, sampleData), axis=1)
+     np.random.shuffle(fullData)
+-    dataset = fullData[0:,0:141]
+-    LLPfeats = fullData[0:,142:146]
+-    sampleData = fullData[0:,146:]
+-  
+-    X = dataset[:, 0 : len(dataset[0]) - 1]
+-    y = dataset[:, len(dataset[0]) - 1]
++    dataset    = fullData[:, :n_part_cols]                    # particle inputs + label
++    sampleData = fullData[:, n_part_cols:]                    # jet features (pT,eta,phi,mass)
++
++    X = dataset[:, 0 : n_part_cols - 1]
++    y = dataset[:, n_part_cols - 1]
+     X = X.reshape((X.shape[0], N_PART_PER_JET, N_FEAT))
+ 
+     # ── Impact parameter normalisation knob  (unchanged) ─────────────────────
+@@ -510,17 +523,35 @@
+ 
+     np.save("{}_bitnetWeights.npy".format(tag),  weights)
+     np.save("{}_ptRange.npy".format(tag),        sampleData[:, 0])
++
++    # ── Weights & Biases (optional; enabled when WANDB_PROJECT is set) ─────────
++    use_wandb = bool(os.environ.get("WANDB_PROJECT"))
++    if use_wandb:
++        import wandb
++        wandb.init(
++            project = os.environ["WANDB_PROJECT"],
++            name    = os.environ.get("WANDB_RUN_NAME") or None,
++            config  = {"d_model": D_MODEL, "n_heads": N_HEADS, "n_layers": N_LAYERS,
++                       "ffn_dim": FFN_DIM, "l1_reg": L1_REG, "epochs": EPOCHS,
++                       "batch_size": BATCH_SIZE, "n_train": int(len(y)),
++                       "n_signal": int((y == 1).sum()), "n_bkg": int((y == 0).sum())},
++        )
+ 
+     # ── Build model  ──────────────────────────────────────────────────────────
+     model = build_bitnet_jet_tagger()
+     model.summary()
++    if use_wandb:
++        wandb.config.update({"total_params": int(model.count_params())})
+ 
+-    tf.keras.utils.plot_model(
+-        model,
+-        to_file    = os.getcwd() + f"/{tag}_model.png",
+-        show_shapes= True,
+-        show_layer_names=True,
+-    )
++    try:
++        tf.keras.utils.plot_model(
++            model,
++            to_file    = os.getcwd() + f"/{tag}_model.png",
++            show_shapes= True,
++            show_layer_names=True,
++        )
++    except Exception as e:
++        print(f"[warn] plot_model skipped (non-fatal): {e}")
+ 
+     # ── Pruning  (same schedule as your original) ─────────────────────────────
+     # Note: tfmot pruning wraps Dense-like layers. BitLinear is a custom Layer,
+@@ -551,16 +582,21 @@
+         ),
+         # pruning_callbacks.UpdatePruningStep(),  # ← re-enable if pruning above
+     ]
++    if use_wandb:
++        class _WandbEpoch(tf.keras.callbacks.Callback):
++            def on_epoch_end(self, epoch, logs=None):
++                wandb.log({**(logs or {}), "epoch": epoch})
++        callbacks.append(_WandbEpoch())
+ 
+-    # ── Train  (unchanged) ────────────────────────────────────────────────────
++    # ── Train  ────────────────────────────────────────────────────────────────
+     history = model.fit(
+         X, y,
+-        epochs           = 200,
+-        batch_size       = 50,
++        epochs           = EPOCHS,
++        batch_size       = BATCH_SIZE,
+         verbose          = 2,
+         sample_weight    = np.asarray(weights),
+         validation_split = 0.20,
+-        callbacks        = [callbacks],
++        callbacks        = callbacks,
+     )
+ 
+     # ── Loss curve  ───────────────────────────────────────────────────────────
+@@ -579,7 +615,14 @@
+     model.save(os.getcwd() + "/{}_bitnetJetTagModel.h5".format(tag))
+     print(f"\nModel saved to {tag}_bitnetJetTagModel.h5")
+ 
++    if use_wandb:
++        try:
++            wandb.save(os.getcwd() + "/{}_bitnetJetTagModel.h5".format(tag))
++        except Exception as e:
++            print(f"[warn] wandb.save skipped: {e}")
++        wandb.finish()
+ 
++
+ # ══════════════════════════════════════════════════════════════════════════════
+ # QUICK SANITY CHECK  (no data needed)
+ # ══════════════════════════════════════════════════════════════════════════════
+@@ -596,12 +639,15 @@
+     model = build_bitnet_jet_tagger()
+     model.summary()
+ 
+-    tf.keras.utils.plot_model(
+-        model,
+-        to_file    = os.getcwd() + f"/model.png",
+-        show_shapes= True,
+-        show_layer_names=True,
+-    )
++    try:
++        tf.keras.utils.plot_model(
++            model,
++            to_file    = os.getcwd() + f"/model.png",
++            show_shapes= True,
++            show_layer_names=True,
++        )
++    except Exception as e:
++        print(f"[warn] plot_model skipped (non-fatal): {e}")
+ 
+     # Shape check
+     dummy_x = np.random.randn(8, N_PART_PER_JET, N_FEAT).astype(np.float32)

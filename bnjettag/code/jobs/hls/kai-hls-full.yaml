@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-hls-full
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 14400   # 4h cap
+  template:
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+      containers:
+      - name: hls
+        image: python:3.10-bookworm        # Python 3.10 => unlocks hls4ml >= 1.2 (transformer support)
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export CUDA_VISIBLE_DEVICES=-1
+          OUT=/data/outputs/hls
+          mkdir -p "$OUT"
+          echo "[setup] $(date) g++ + newer hls4ml stack"
+          apt-get update -qq && apt-get install -y -qq build-essential >/dev/null
+          pip install -q "numpy<2" "tensorflow-cpu==2.14.1" "hls4ml>=1.2,<2"
+          # qkeras only needed for Stage E (binary QDense); Stages B/C/D are plain Keras.
+          pip install -q --no-deps "qkeras==0.9.0" || true
+          pip install -q "tensorflow-model-optimization==0.7.5" "pyparsing<3" scikit-learn keras-tuner scipy networkx tqdm || true
+          python -c "import hls4ml,tensorflow as tf;print('hls4ml',hls4ml.__version__,'TF',tf.__version__)"
+          echo "[run] $(date) full-transformer probe (LayerNorm + EinsumDense + binary block)"
+          python -u /scripts/full_transformer_probe.py 2>&1 | tee "$OUT/full_transformer_probe.log"
+          echo "[done] $(date) full probe complete"
+          ls -la "$OUT"
+        resources:
+          limits:
+            memory: 16Gi
+            cpu: "4"
+          requests:
+            memory: 12Gi
+            cpu: "2"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: scripts
+          mountPath: /scripts
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kai-data
+      - name: scripts
+        configMap:
+          name: kai-hls-scripts

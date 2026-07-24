@@ -1,0 +1,4 @@
+{
+ "verdict": "FAILED",
+ "error": "NotImplementedError: Heterogenous quantization for activations is only supported with IOType=io_parallel"
+}

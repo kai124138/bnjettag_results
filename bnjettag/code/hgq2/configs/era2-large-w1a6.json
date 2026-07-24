@@ -1,0 +1,19 @@
+{
+  "name": "era2-large-w1a6",
+  "era": 2,
+  "arch": {
+    "n_part": 10, "n_feat": 16, "d_model": 256, "n_heads": 8, "n_layers": 8,
+    "ffn_dim": 1024, "n_classes": 5, "pool": "gap", "ffn_act": "relu",
+    "norm": "subln", "norm_placement": "per_linear", "pos_enc": "folded_constant",
+    "softmax_free": false
+  },
+  "quant": {
+    "weight": "binary_absmean", "act_bits": 6,
+    "act_policy": "static_per_tensor_calibrated", "calib_n": 8192
+  },
+  "checkpoint": "bnjettag/models/r5/large-lr05-a6-s1/bitnet/noNorm_train_bitnetJetTagModel.h5",
+  "reference_npz": "bnjettag/roc-results/r5/A6-lr05-s1.npz",
+  "trained_as": {"wandb_run": "r5-large-lr05-a6-s1", "variant": "bitnet", "act_bits": 6, "seed": 1},
+  "eval_data": "data/val",
+  "hls": {"backend": "Vitis", "part": "xcvu13p-flga2577-2-e", "clock_ns": 2.5, "rf": 256, "io": "io_parallel"}
+}

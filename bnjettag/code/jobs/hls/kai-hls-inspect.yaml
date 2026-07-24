@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-hls-inspect
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1200
+  template:
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+      containers:
+      - name: inspect
+        image: python:3.10-bookworm
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          cd /data/outputs/hls
+          echo "===== /data/outputs/hls contents ====="
+          ls -la
+          for A in 8 6 4; do
+            P="binary_ffn_a${A}_prj"
+            echo; echo "############ A${A}: ${P}/firmware/defines.h typedefs ############"
+            grep -E "typedef" "${P}/firmware/defines.h" 2>&1 | grep -Ev "^//" || true
+            echo "------ ${P}: act/fc accum + reuse in parameters.h ------"
+            grep -E "accum_t|reuse_factor|table_t|io_type|n_in|n_out|n_filt" "${P}/firmware/parameters.h" 2>&1 | head -50 || true
+          done
+          echo; echo "===== v12 projects present on PVC? ====="
+          for V in layernorm_v12_prj bitnet_block_v12_prj einsum_v12_prj sfree_attn_v12_prj; do
+            if [ -d "$V" ]; then echo "PRESENT: $V"; ls "$V"/firmware/*.h 2>/dev/null | head; else echo "absent : $V"; fi
+          done
+          echo "[done]"
+        resources:
+          limits: {memory: 2Gi, cpu: "1"}
+          requests: {memory: 2Gi, cpu: "1"}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kai-data

@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-bnv-preflight
+  labels:
+    app: bnjet-variant
+    bnv: preflight
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600   # CPU-only sanity build of all 9 variants; should finish in minutes
+  template:
+    metadata:
+      labels:
+        app: bnjet-variant
+        bnv: preflight
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          # Pin to the node that already cached tensorflow:2.11.1-gpu on the first preflight,
+          # so this re-run skips the ~6 min image pull.
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [sl-um-es3.slateci.io]
+      containers:
+      - name: preflight
+        image: tensorflow/tensorflow:2.11.1-gpu
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export MPLBACKEND=Agg
+          export CUDA_VISIBLE_DEVICES=-1
+          CODE=/data/BNJetTag
+          echo "[setup] $(date) deps (cpu)"
+          pip install -q qkeras==0.9.0 "tensorflow==2.11.1" "matplotlib<3.8" scikit-learn h5py numpy
+          # match the training-job shim: ensure PEP604 unions parse on this Python
+          ( grep -rl " | " --include="*.py" "$CODE" 2>/dev/null | while read f; do grep -q "from __future__ import annotations" "$f" || sed -i '1i from __future__ import annotations' "$f"; done ) || true
+          export PYTHONPATH="$CODE:$PYTHONPATH"
+          bash "$CODE/preflight.sh"
+        resources:
+          limits:
+            memory: 8Gi
+            cpu: "4"
+          requests:
+            memory: 6Gi
+            cpu: "2"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kai-data

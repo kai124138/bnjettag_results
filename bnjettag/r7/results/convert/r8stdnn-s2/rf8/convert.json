@@ -1,0 +1,15 @@
+{
+ "written": "2026-07-18T20:12:58",
+ "config_hash": "97affd53",
+ "variant": "w1a8",
+ "seed": 2,
+ "tag": null,
+ "output_dir": "bnjettag/r7/results/convert/r8stdnn-s2/rf8/hls_prj_rf8",
+ "tarball": "bnjettag/r7/results/convert/r8stdnn-s2/rf8/hls_prj_rf8.tar.gz",
+ "rf": 8,
+ "strategy": "Latency",
+ "beta_mode": "csd2",
+ "part": "xcvu13p-flga2577-2-e",
+ "clock_ns": 2.5,
+ "mulder_cmd": "./mulder_csynth.sh hls_prj_rf8.tar.gz"
+}

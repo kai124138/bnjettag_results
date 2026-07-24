@@ -1,0 +1,73 @@
+# kai-hls-csynth.yaml — fill the EXACT LUT/FF/DSP/BRAM + latency-in-cycles table.
+#
+# *** REQUIRES A VITIS / VIVADO HLS BACKEND ON PATH. ***
+# NRP Nautilus does NOT have one, so this Job is the off-cluster handoff: run it
+# wherever Vitis HLS already lives (the group's Vitis 2023.2 box — the same path
+# hard-coded in code/training/HLS_qk_Roc_Tracing.py). Vitis HLS *C-synthesis*
+# (csynth) does not need a license; only bitstream place-and-route does.
+#
+# Before applying, (re)create the script ConfigMap so /scripts has run_csynth.py:
+#   kubectl create configmap kai-hls-scripts \
+#     --from-file=run_csynth.py=code/hls/run_csynth.py \
+#     --from-file=sweep_precision.py=code/hls/sweep_precision.py \
+#     --dry-run=client -o yaml | kubectl apply -f -
+#
+# Output: /data/outputs/hls/csynth_report_a{8,6,4}.json  ->  drop into
+#         results/hls_resource_table.md §B (the [csynth] cells).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-hls-csynth
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 21600   # 6h cap; csynth of 3 projects is well under this
+  template:
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+      containers:
+      - name: csynth
+        # ---- SET ME: an image with Vitis/Vivado HLS installed and on PATH. ----
+        # e.g. a site image like  gitlab-registry.<site>/hls4ml-vitis:2023.2
+        # The bare python image below WILL fail at build(csynth=True) with
+        # "Vitis HLS not found" — that failure is the proof NRP lacks the backend.
+        image: REPLACE_WITH_VITIS_HLS_IMAGE
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export CUDA_VISIBLE_DEVICES=-1
+          OUT=/data/outputs/hls
+          export HLS_OUT="$OUT"          # run_csynth.py now defaults to ./csynth_out; pin it to the PVC here
+          mkdir -p "$OUT"
+          # If the image ships Vitis via a settings script, source it so vitis_hls is on PATH:
+          #   source /tools/Xilinx/Vitis_HLS/2023.2/settings64.sh
+          command -v vitis_hls >/dev/null 2>&1 || command -v vivado_hls >/dev/null 2>&1 || {
+            echo "[FATAL] No vitis_hls/vivado_hls on PATH — this Job needs a Vitis image (see metadata)."; exit 2; }
+          pip install -q "hls4ml==0.8.1" "qkeras==0.9.0" "tensorflow==2.11.1" \
+                         "pyparsing<3" scikit-learn keras-tuner "numpy<2" || true
+          echo "[run] $(date) C-synthesis of binary_ffn_a{8,6,4}"
+          python -u /scripts/run_csynth.py 2>&1 | tee "$OUT/csynth.log"
+          echo "[done] $(date)"; ls -la "$OUT"/csynth_report_a*.json
+        resources:
+          limits:   {memory: 16Gi, cpu: "8"}
+          requests: {memory: 12Gi, cpu: "4"}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: scripts
+          mountPath: /scripts
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kai-data
+      - name: scripts
+        configMap:
+          name: kai-hls-scripts

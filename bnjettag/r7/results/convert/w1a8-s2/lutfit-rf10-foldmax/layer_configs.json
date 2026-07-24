@@ -1,0 +1,92 @@
+{
+ "input_proj": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_attn_Wq": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_attn_Wk": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_attn_Wv": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_attn_Wo": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_ffn_fc1": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_ffn_fc2": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_attn_Wq": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_attn_Wk": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_attn_Wv": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_attn_Wo": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_ffn_fc1": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_ffn_fc2": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_attn_scores": {
+  "ReuseFactor": 10
+ },
+ "bit_block_0_attn_ctx": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_attn_scores": {
+  "ReuseFactor": 10
+ },
+ "bit_block_1_attn_ctx": {
+  "ReuseFactor": 10
+ },
+ "head_fc1": {
+  "ReuseFactor": 10
+ },
+ "head_fc2": {
+  "ReuseFactor": 10
+ },
+ "ln_input_proj": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_0_attn_qkv": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_0_attn_Wo": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_0_ffn_fc1": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_0_ffn_fc2": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_1_attn_qkv": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_1_attn_Wo": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_1_ffn_fc1": {
+  "ReuseFactor": 1
+ },
+ "ln_bit_block_1_ffn_fc2": {
+  "ReuseFactor": 1
+ },
+ "ln_head_fc1": {
+  "ReuseFactor": 1
+ },
+ "ln_head_fc2": {
+  "ReuseFactor": 1
+ }
+}

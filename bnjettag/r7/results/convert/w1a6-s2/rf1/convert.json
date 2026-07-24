@@ -1,0 +1,15 @@
+{
+ "written": "2026-07-18T17:59:23",
+ "config_hash": "6d1c6570",
+ "variant": "w1a6",
+ "seed": 2,
+ "tag": null,
+ "output_dir": "bnjettag/r7/results/convert/w1a6-s2/rf1/hls_prj_rf1",
+ "tarball": "bnjettag/r7/results/convert/w1a6-s2/rf1/hls_prj_rf1.tar.gz",
+ "rf": 1,
+ "strategy": "Latency",
+ "beta_mode": "csd2",
+ "part": "xcvu13p-flga2577-2-e",
+ "clock_ns": 2.5,
+ "mulder_cmd": "./mulder_csynth.sh hls_prj_rf1.tar.gz"
+}

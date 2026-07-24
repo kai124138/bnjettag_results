@@ -1,0 +1,62 @@
+{
+ "written": "2026-07-18T18:01:23",
+ "config": "r7-small-w1a4",
+ "config_hash": "a450fb59",
+ "variant": "w1a4",
+ "seed": 2,
+ "tag": null,
+ "wandb_run": "final-w1a4-s2",
+ "attn_grids": "build_default",
+ "checkpoint": "bnjettag/r7/models/small-w1a4-s2/model_best.keras",
+ "train_meta": {},
+ "n_bitlayers": 15,
+ "act_ibits": {
+  "input_proj": 1,
+  "bit_block_0_attn_Wq": 1,
+  "bit_block_0_attn_Wk": 1,
+  "bit_block_0_attn_Wv": 1,
+  "bit_block_0_attn_Wo": 0,
+  "bit_block_0_ffn_fc1": 1,
+  "bit_block_0_ffn_fc2": 2,
+  "bit_block_1_attn_Wq": 1,
+  "bit_block_1_attn_Wk": 1,
+  "bit_block_1_attn_Wv": 1,
+  "bit_block_1_attn_Wo": 0,
+  "bit_block_1_ffn_fc1": 1,
+  "bit_block_1_ffn_fc2": 2,
+  "head_fc1": 1,
+  "head_fc2": 1
+ },
+ "gate1": {
+  "n": 4096,
+  "corr_scores": 0.882782957040133,
+  "corr_logits": 0.882617617044026,
+  "corr_per_class": [
+   0.8545899618304084,
+   0.8948938610317221,
+   0.7720855432020504,
+   0.7528635137914291,
+   0.905903881264887
+  ],
+  "max_abs_diff_scores": 0.44292968841252633,
+  "mean_abs_diff_scores": 0.03789514122491309,
+  "max_abs_diff_logits": 1.6154530048370361,
+  "argmax_agreement": 0.6708984375,
+  "weight_export_max_abs_diff": 2.9802322387695312e-08,
+  "beta_mode": "csd2"
+ },
+ "gate1_pass": false,
+ "gate1_threshold": 0.9999,
+ "gate1_exact_beta": {
+  "corr_scores": 0.897741597547117,
+  "corr_logits": 0.895983051821478,
+  "argmax_agreement": 0.692626953125,
+  "note": "exact-\u03b2 affine (DSP cost on mulder unmeasured) \u2014 isolates the CSD-2 \u03b2 \u0394"
+ },
+ "gate1_copy_qat_ceiling": {
+  "corr_scores": 0.903425019840803,
+  "corr_logits": 0.90191396181297,
+  "argmax_agreement": 0.689697265625,
+  "note": "attn_grids='copy_qat' (QAT attention grids via scaler=1/\u03b2). KERAS-SIDE ceiling: hls4ml's FixedPointQuantizer frontend ignores q.scaler (measured gate-2 below), so this is not hardware-faithful; build_default ships."
+ }
+}

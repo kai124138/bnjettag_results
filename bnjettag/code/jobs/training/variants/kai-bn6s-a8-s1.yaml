@@ -1,0 +1,141 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-bn6s-a8-s1
+  labels:
+    app: bnjet-r6-small
+    bnv: "small-a8-s1"
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 86400
+  template:
+    metadata:
+      labels:
+        app: bnjet-r6-small
+        bnv: "small-a8-s1"
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-A100-SXM4-80GB
+                - NVIDIA-A100-80GB-PCIe
+                - NVIDIA-A100-PCIE-40GB
+                - NVIDIA-H100-80GB-HBM3
+                - NVIDIA-H200-NVL
+                - NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition
+                - NVIDIA-GeForce-RTX-4090
+                - NVIDIA-L40S
+                - NVIDIA-L40
+                - NVIDIA-RTX-A6000
+                - NVIDIA-A40
+                - NVIDIA-RTX-A5000
+                - NVIDIA-GeForce-RTX-3090
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-H200-NVL, NVIDIA-H100-80GB-HBM3, NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition]
+          - weight: 90
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A100-SXM4-80GB, NVIDIA-A100-80GB-PCIe, NVIDIA-GeForce-RTX-4090, NVIDIA-L40S]
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A100-PCIE-40GB, NVIDIA-L40, NVIDIA-RTX-A6000]
+          - weight: 60
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A40, NVIDIA-RTX-A5000, NVIDIA-GeForce-RTX-3090]
+      containers:
+      - name: train
+        image: tensorflow/tensorflow:2.11.1-gpu
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export MPLBACKEND=Agg
+          export TF_FORCE_GPU_ALLOW_GROWTH=true
+          mkdir -p /work/code /work/data /work/out/bitnet
+          cp /qkcode/qkerasModel.py /work/code/
+          # py3.8 in the TF 2.11 image: make sure modern annotations don't crash import
+          grep -q "from __future__ import annotations" /work/code/qkerasModel.py || \
+            sed -i '1i from __future__ import annotations' /work/code/qkerasModel.py
+          export PYTHONPATH="/work/code:$PYTHONPATH"
+          echo "[setup] $(date) deps"
+          apt-get update -qq && apt-get install -y -qq graphviz
+          pip install -q qkeras==0.9.0 "tensorflow==2.11.1" "matplotlib<3.8" pandas seaborn mplhep pydot scikit-learn h5py wandb
+          nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
+          export WANDB_PROJECT=bnjettag-bitnet
+          export WANDB_RUN_NAME=r6s-small-a8-s1
+
+          echo "[data] $(date) fetching HLS4ML LHC Jet 150p TRAIN split from Zenodo (2.7 GB)"
+          python -u -c 'import urllib.request; urllib.request.urlretrieve(
+            "https://zenodo.org/records/3602260/files/hls4ml_LHCjet_150p_train.tar.gz?download=1",
+            "/work/data/train.tar.gz")'
+          sz=$(stat -c %s /work/data/train.tar.gz); echo "[data] tarball bytes: $sz"
+          [ "$sz" -gt 2500000000 ] || { echo "[fatal] train tarball too small"; exit 1; }
+          tar -xzf /work/data/train.tar.gz -C /work/data && rm /work/data/train.tar.gz
+          DATA=$(dirname "$(find /work/data -name 'jetImage_*.h5' -print -quit)")
+          [ -n "$DATA" ] || { echo "[fatal] no jetImage_*.h5 after extract"; exit 1; }
+          echo "[data] DATA=$DATA ($(ls "$DATA" | wc -l) files)"
+
+          # ---- THESIS: binary W1A8 at deployable scale D32/L2, seed=1. ----
+          # Deployable-scale architecture = code defaults (decision 2026-07-04).
+          export BN_D_MODEL=32 BN_N_HEADS=4 BN_N_LAYERS=2 BN_FFN_DIM=64
+          export BN_N_PART=10
+          export BN_LR=0.00005 BN_WARMUP_EPOCHS=1 BN_DECAY_EPOCHS=40 BN_DECAY_POWER=1.0 BN_BETA2=0.98 BN_WEIGHT_DECAY=0.01 BN_CLIPNORM=1.0 BN_L1_REG=0 BN_BATCH=256 BN_ES_MONITOR=val_auc BN_ES_MODE=max BN_ES_PATIENCE=10
+          export BN_VARIANT=bitnet BN_ACT_BITS=8 BN_SEED=1
+
+          echo "[preflight] $(date) --sanity build"
+          env CUDA_VISIBLE_DEVICES=-1 python -u /work/code/qkerasModel.py --sanity 2>&1 | tail -5
+          echo "[train] $(date) r6s-small-a8-s1  D=32 H=4 L=2 FFN=64  BN_VARIANT=bitnet,BN_ACT_BITS=8,BN_SEED=1"
+          cd /work/out
+          python -u /work/code/qkerasModel.py "$DATA" 2>&1 | tee /work/out/train_small-a8-s1.log
+          echo "[done] $(date) r6s-small-a8-s1"
+        env:
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kai-wandb
+              key: WANDB_API_KEY
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+            memory: 24Gi
+            cpu: "4"
+            ephemeral-storage: 24Gi
+          requests:
+            nvidia.com/gpu: "1"
+            memory: 24Gi
+            cpu: "4"
+            ephemeral-storage: 20Gi
+        volumeMounts:
+        - name: qkcode
+          mountPath: /qkcode
+        - name: work
+          mountPath: /work
+      volumes:
+      - name: qkcode
+        configMap:
+          name: kai-qkerasmodel-r5
+      - name: work
+        emptyDir:
+          sizeLimit: 24Gi

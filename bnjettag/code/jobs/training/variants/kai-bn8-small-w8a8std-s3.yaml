@@ -1,0 +1,157 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-bn8-small-w8a8std-s3
+  labels:
+    app: bnjet-r7f
+    bn7f: "small-w8a8std-s3"
+spec:
+  # backoffLimit 2: an UnexpectedAdmissionError (node GPU device-plugin race, zero side
+  # effects) must not kill the Job. Duplicate-W&B-run risk from a mid-train retry is
+  # accepted (the ROC fetcher prefers the finished run if duplicates appear).
+  backoffLimit: 2
+  activeDeadlineSeconds: 14400
+  template:
+    metadata:
+      labels:
+        app: bnjet-r7f
+        bn7f: "small-w8a8std-s3"
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values: [k8s-chase-ci-07.calit2.optiputer.net, ry-gpu-08.sdsc.optiputer.net, suncave-1, suncave-2, suncave-3, suncave-4, suncave-5, suncave-6, suncave-7, suncave-8, suncave-9, suncave-10, suncave-11, suncave-12, suncave-13, suncave-14, suncave-15, suncave-16, suncave-17, suncave-18, suncave-19, suncave-20]
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-H200-NVL
+                - NVIDIA-H100-80GB-HBM3
+                - NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition
+                - NVIDIA-A100-SXM4-80GB
+                - NVIDIA-A100-80GB-PCIe
+                - NVIDIA-A100-PCIE-40GB
+                - NVIDIA-GeForce-RTX-4090
+                - NVIDIA-L40S
+                - NVIDIA-L40
+                - NVIDIA-RTX-A6000
+                - NVIDIA-A10
+                - NVIDIA-L4
+                - NVIDIA-GeForce-RTX-2080-Ti
+                - Tesla-V100-SXM2-32GB
+                - Tesla-V100-PCIE-32GB
+                - NVIDIA-A40
+                - NVIDIA-RTX-A5000
+                - NVIDIA-GeForce-RTX-3090
+          preferredDuringSchedulingIgnoredDuringExecution:
+          # PREFER the abundant mid-tier (A10/L4/2080-Ti/V100/A40/A5000/3090) — plentiful and
+          # more than enough for a <=19k-param model. De-prefer A100s, flagship = last resort.
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A10, NVIDIA-L4, NVIDIA-GeForce-RTX-2080-Ti, Tesla-V100-SXM2-32GB, Tesla-V100-PCIE-32GB, NVIDIA-A40, NVIDIA-RTX-A5000, NVIDIA-GeForce-RTX-3090]
+          - weight: 60
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-GeForce-RTX-4090, NVIDIA-L40S, NVIDIA-L40, NVIDIA-RTX-A6000]
+          - weight: 20
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A100-SXM4-80GB, NVIDIA-A100-80GB-PCIe, NVIDIA-A100-PCIE-40GB]
+          - weight: 10
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-H200-NVL, NVIDIA-H100-80GB-HBM3, NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition]
+      containers:
+      - name: train
+        image: python:3.12
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export KERAS_BACKEND=tensorflow MPLBACKEND=Agg TF_FORCE_GPU_ALLOW_GROWTH=true
+          mkdir -p /work/code /work/data /work/outputs
+          CODE=/work/code
+          OUT=/work/outputs/small-w8a8std-s3
+          mkdir -p "$OUT"
+          echo "[code] $(date) unpack code from ConfigMap kai-bnf-code (PVC-free)"
+          tar -xzf /cmcode/hgq2.tar.gz -C "$CODE" --strip-components=1
+          md5sum /cmcode/hgq2.tar.gz | awk '{print "[code] configmap tar md5:", $1}'
+          export PYTHONPATH="$CODE:$PYTHONPATH"
+          echo "[setup] $(date) pinned deps (mirror .venv-hgq2)"
+          pip install -q --no-cache-dir "tensorflow[and-cuda]==2.21.0" "keras==3.15.0" "hgq2==0.1.9" "quantizers==1.2.2" "scikit-learn==1.9.0" "h5py==3.14.0" "wandb==0.28.0" "hls4ml==1.3.0" "numpy==2.5.0"
+          # TF 2.21 pip wheel's RPATH discovery of the nvidia-*-cu12 wheel libs is broken;
+          # explicit LD_LIBRARY_PATH over the wheel lib dirs fixes it (verified 2026-07-07).
+          NVLIBS=$(python -c "import glob; print(':'.join(sorted(glob.glob('/usr/local/lib/python*/site-packages/nvidia/*/lib'))))")
+          export LD_LIBRARY_PATH="$NVLIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          echo "[gpu] $(date) nvidia-smi + TF backend assertion"
+          nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || { echo "[fatal] no nvidia-smi / GPU"; exit 1; }
+          python -c "import os; os.environ.setdefault('KERAS_BACKEND','tensorflow'); import tensorflow as tf; g=tf.config.list_physical_devices('GPU'); assert g, 'NO GPU visible to TensorFlow'; print('[gpu] TF sees', g)"
+          echo "[data] $(date) fetch HLS4ML LHC Jet 150p TRAIN split from Zenodo (~3 GB, PVC-free)"
+          python -u -c 'import urllib.request; urllib.request.urlretrieve("https://zenodo.org/records/3602260/files/hls4ml_LHCjet_150p_train.tar.gz?download=1", "/work/data/train.tar.gz")'
+          sz=$(stat -c %s /work/data/train.tar.gz); echo "[data] tarball bytes: $sz"
+          [ "$sz" -gt 2500000000 ] || { echo "[fatal] train tarball too small ($sz < 2.5GB; real size 2,725,115,104 B measured 2026-07-07)"; exit 1; }
+          tar -xzf /work/data/train.tar.gz -C /work/data && rm -f /work/data/train.tar.gz
+          DATA=$(dirname "$(find /work/data -name 'jetImage_*.h5' -print -quit)")
+          [ -n "$DATA" ] || { echo "[fatal] no jetImage_*.h5 after extract"; exit 1; }
+          echo "[data] DATA=$DATA ($(ls "$DATA" | wc -l) files)"
+          export BNHGQ2_TRAIN_DATA="$DATA"
+          export BNHGQ2_OUT_ROOT=/work/outputs
+          export BNHGQ2_STORE=/work/outputs/_store
+          export WANDB_PROJECT=bnjettag-final
+          export WANDB_RUN_NAME=r8-small-w8a8-std-s3
+          # ---- ROUND-8 STD BASELINE (identical treatment for the fair std-vs-std gap). BASELINE W8A8 (8-bit static weights + acts) — 1-bit-vs-ordinary-quantization reference. ----
+          echo "[train] $(date) r8-small-w8a8-std-s3  size=small config=r8-small-w8a8-std.json seed=3"
+          cd "$CODE"
+          python -u "$CODE/run_stage.py" train \
+            --config "$CODE/configs/r8-small-w8a8-std.json" --seed 3 --out-dir "$OUT" \
+            2>&1 | tee "$OUT/train.log"
+          echo "[done] $(date) r8-small-w8a8-std-s3"
+        env:
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kai-wandb
+              key: WANDB_API_KEY
+        resources:
+          # RIGHT-SIZED (decisions.md 2026-07-13): deployable-scale jobs are data-bound, not
+          # FLOP-bound. 2 cpu / 8Gi mem / 16Gi eph (tarball 2.7 GB deleted post-extract +
+          # extracted h5 + pip wheels). requests==limits. The 24Gi/4cpu final ask was
+          # inherited large-model sizing and pended r7 on Insufficient cpu/memory.
+          limits:
+            nvidia.com/gpu: "1"
+            cpu: "2"
+            memory: 8Gi
+            ephemeral-storage: 16Gi
+          requests:
+            nvidia.com/gpu: "1"
+            cpu: "2"
+            memory: 8Gi
+            ephemeral-storage: 16Gi
+        volumeMounts:
+        - name: cmcode
+          mountPath: /cmcode
+        - name: work
+          mountPath: /work
+      volumes:
+      - name: cmcode
+        configMap:
+          name: kai-bnf-code
+      - name: work
+        emptyDir:
+          sizeLimit: 16Gi

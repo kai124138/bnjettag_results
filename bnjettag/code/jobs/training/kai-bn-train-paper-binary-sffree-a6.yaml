@@ -1,0 +1,122 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-bn-paper-bin-sffree-a6
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 172800   # 48h safety cap (EarlyStopping usually stops sooner)
+  template:
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-A100-SXM4-80GB
+                - NVIDIA-A100-80GB-PCIe
+                - NVIDIA-A100-PCIE-40GB
+                - NVIDIA-H100-80GB-HBM3
+                - NVIDIA-H200-NVL
+                - NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition
+                - NVIDIA-GeForce-RTX-4090
+                - NVIDIA-L40S
+                - NVIDIA-L40
+                - NVIDIA-RTX-A6000
+                - NVIDIA-A40
+                - NVIDIA-RTX-A5000
+                - NVIDIA-GeForce-RTX-3090
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-H200-NVL, NVIDIA-H100-80GB-HBM3, NVIDIA-RTX-PRO-6000-Blackwell-Max-Q-Workstation-Edition]
+          - weight: 90
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A100-SXM4-80GB, NVIDIA-A100-80GB-PCIe, NVIDIA-GeForce-RTX-4090, NVIDIA-L40S]
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A100-PCIE-40GB, NVIDIA-L40, NVIDIA-RTX-A6000]
+          - weight: 60
+            preference:
+              matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values: [NVIDIA-A40, NVIDIA-RTX-A5000, NVIDIA-GeForce-RTX-3090]
+      containers:
+      - name: train
+        image: tensorflow/tensorflow:2.11.1-gpu
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export MPLBACKEND=Agg
+          export TF_FORCE_GPU_ALLOW_GROWTH=true   # cuBLAS handle init at larger batch
+          CODE=/data/BNJetTag
+          OUT=/data/outputs/qk-paper-binary-sffree-a6
+          mkdir -p "$OUT/bitnet" "$OUT/v1/bitnet"
+          echo "[setup] $(date) deps"
+          apt-get update -qq && apt-get install -y -qq graphviz
+          pip install -q qkeras==0.9.0 "tensorflow==2.11.1" "matplotlib<3.8" pandas seaborn mplhep pydot scikit-learn h5py wandb
+          ( grep -rl " | " --include="*.py" "$CODE" 2>/dev/null | while read f; do grep -q "from __future__ import annotations" "$f" || sed -i '1i from __future__ import annotations' "$f"; done ) || true
+          nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
+          export PYTHONPATH="$CODE:$PYTHONPATH"
+          export WANDB_PROJECT=bnjettag-bitnet
+          export WANDB_RUN_NAME=paper-binary-D256-L8-FFN1024-lr1p5e4-wu1-dec40-wd01-b098-clipON-SOFTMAXFREE-A6
+          export BN_D_MODEL=256 BN_N_HEADS=8 BN_N_LAYERS=8 BN_FFN_DIM=1024
+          # ACTIVATION-PRECISION axis (abstract: "varying activation precision"). IDENTICAL to the
+          # winning binary + softmax-free run kai-bn-paper-bin-sffree EXCEPT BN_ACT_BITS=6, which
+          # narrows the absmax activation quantizer from 8-bit [-128,127] to 6-bit [-32,31]. Weights
+          # stay BINARY {-1,+1} and attention stays SOFTMAX-FREE (binarizable). Controlled comparison:
+          # only the activation datapath width changes. Baseline to match: A8 softmax-free val_auc 0.7562.
+          export BN_SOFTMAX_FREE=1
+          export BN_ACT_BITS=6
+          export BN_LR=0.00015 BN_WARMUP_EPOCHS=1 BN_DECAY_EPOCHS=40 BN_DECAY_POWER=1.0
+          export BN_BETA2=0.98 BN_WEIGHT_DECAY=0.01 BN_CLIPNORM=1.0
+          export BN_L1_REG=0 BN_BATCH=256
+          export BN_ES_MONITOR=val_auc BN_ES_MODE=max BN_ES_PATIENCE=10
+          echo "[train] $(date) BINARY + SOFTMAX-FREE attn + A6 activations  D=256 H=8 L=8 FFN=1024  LR=1.5e-4 wu=1 decay=40 wd=0.01 b2=0.98 clip=1.0 bs=256  ES=val_auc/max/p10  EPOCHS=200"
+          cd "$OUT"
+          python -u "$CODE/qkerasModel.py" \
+            /data/bnjet/train_merged/merged_trainPart.h5 \
+            /data/bnjet/QCD_Pt15To3000_Flat_PU200/Bkg_train.h5 \
+            /data/bnjet/train_merged/merged_trainJet.h5 \
+            /data/bnjet/QCD_Pt15To3000_Flat_PU200/Bkg_trainJets.h5 \
+            2>&1 | tee "$OUT/train_paper_binary_sffree_a6.log"
+          echo "[done] $(date) paper-binary-sffree-a6"
+        env:
+        - name: WANDB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kai-wandb
+              key: WANDB_API_KEY
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+            memory: 24Gi
+            cpu: "4"
+          requests:
+            nvidia.com/gpu: "1"
+            memory: 24Gi
+            cpu: "4"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kai-data

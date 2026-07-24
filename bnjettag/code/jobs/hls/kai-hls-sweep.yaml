@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kai-hls-sweep
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 14400   # 4h cap; CPU-only convert+emulate is light
+  template:
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values: [amd64]
+      containers:
+      - name: hls
+        image: tensorflow/tensorflow:2.11.1-gpu   # proven Python 3.8 / hls4ml 0.8.1 path
+        command: ["bash", "-c"]
+        args:
+        - |
+          set -eo pipefail
+          export CUDA_VISIBLE_DEVICES=-1            # CPU-only: hls4ml convert + g++ emulate
+          OUT=/data/outputs/hls
+          mkdir -p "$OUT"
+          echo "[setup] $(date) deps (g++ for hls4ml compile + hls4ml 0.8.1)"
+          apt-get update -qq && apt-get install -y -qq build-essential >/dev/null
+          # qkeras 0.9.0 setup.py has a typo dep ("pyparser") so pip never pulls pyparsing;
+          # the training image only had it transitively via matplotlib. Add it (+ qkeras's
+          # other import-time deps) explicitly. pyparsing<3 keeps the delimitedList alias.
+          pip install -q "hls4ml==0.8.1" "qkeras==0.9.0" "tensorflow==2.11.1" \
+                         "pyparsing<3" scikit-learn keras-tuner "numpy<2" || true
+          python -c "import hls4ml,qkeras,tensorflow as tf;print('hls4ml',hls4ml.__version__,'qkeras OK TF',tf.__version__)"
+          echo "[run] $(date) A8/A6/A4 binary-FFN firmware sweep"
+          python -u /scripts/sweep_precision.py 2>&1 | tee "$OUT/sweep_precision.log"
+          echo "[run] $(date) analytical per-component resource model"
+          python -u /scripts/resource_model.py 2>&1 | tee "$OUT/resource_model.log"
+          echo "[done] $(date) hls sweep complete; projects + logs under $OUT"
+          ls -la "$OUT"
+        resources:
+          limits:
+            memory: 16Gi
+            cpu: "4"
+          requests:
+            memory: 12Gi
+            cpu: "2"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: scripts
+          mountPath: /scripts
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kai-data
+      - name: scripts
+        configMap:
+          name: kai-hls-scripts

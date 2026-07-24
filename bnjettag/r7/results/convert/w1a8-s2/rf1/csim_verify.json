@@ -1,0 +1,24 @@
+{
+ "written": "2026-07-14T11:34:49",
+ "config": "r7-small-w1a8",
+ "config_hash": "ac50da08",
+ "variant": "w1a8",
+ "seed": 2,
+ "tag": null,
+ "rf": 1,
+ "strategy": "Latency",
+ "beta_mode": "csd2",
+ "attn_grids": "build_default",
+ "backend": "Vitis",
+ "macos_local_csim": true,
+ "csim": {
+  "n": 128,
+  "max_abs_diff": 0.328125,
+  "mean_abs_diff": 0.02886657789349556,
+  "bit_exact": false,
+  "corr": 0.9986957710291886
+ },
+ "gate2_pass": true,
+ "gate2_threshold": 0.997,
+ "relu_sat_fix": "applied (fix_relu_saturation)"
+}

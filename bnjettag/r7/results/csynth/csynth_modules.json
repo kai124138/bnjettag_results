@@ -1,0 +1,2574 @@
+{
+  "source": "bnjettag/r7/results/csynth/whole_model_rf8_stdnn.xml",
+  "top_total": {
+    "BRAM_18K": 90,
+    "DSP": 1764,
+    "FF": 1919421,
+    "LUT": 3910515,
+    "URAM": 0
+  },
+  "modules": [
+    {
+      "module": "transpose_ap_fixed_8_4_4_0_0_ap_fixed_8_4_4_0_0_config3_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "cast_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 34,
+      "LUT": 84,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "1",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2444,
+      "LUT": 8399,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_1",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2397,
+      "LUT": 8421,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_2",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2573,
+      "LUT": 8366,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_3",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2568,
+      "LUT": 8370,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_4",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2410,
+      "LUT": 8395,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_5",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2347,
+      "LUT": 8257,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_6",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2400,
+      "LUT": 8336,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_7",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2503,
+      "LUT": 8387,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_8",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2503,
+      "LUT": 8405,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_dense_9",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2396,
+      "LUT": 8387,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_16_9_4_0_0_ap_fixed_16_9_4_0_0_config3_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_4_0_0_ap_fixed_16_9_4_0_0_config3_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 24561,
+      "LUT": 83812,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "normalize_ap_fixed_16_9_4_0_0_ap_fixed_19_7_5_3_0_config5_s",
+      "role": "affine",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 8320,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_4_5_3_0_ap_fixed_8_4_5_3_0_config7_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_10",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_11",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_12",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_13",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_14",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_15",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_16",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_17",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_dense_18",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4018,
+      "LUT": 13047,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_13_9_4_0_0_ap_fixed_13_9_4_0_0_config7_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config7_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 40185,
+      "LUT": 130591,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_4_5_3_0_ap_fixed_8_4_5_3_0_config9_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_19",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_20",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_21",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_22",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_23",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_24",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_25",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_26",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_dense_27",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3929,
+      "LUT": 12782,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_13_9_4_0_0_ap_fixed_13_9_4_0_0_config9_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config9_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 39294,
+      "LUT": 127936,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "einsum_ap_fixed_ap_fixed_13_9_4_0_0_ap_fixed_29_21_5_3_0_config12_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 400,
+      "FF": 80040,
+      "LUT": 136469,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "softmax_stable_ap_fixed_ap_ufixed_23_1_4_0_0_softmax_config13_s",
+      "role": "softmax",
+      "BRAM_18K": 9,
+      "DSP": 10,
+      "FF": 4233,
+      "LUT": 4224,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "16",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_4_5_3_0_ap_fixed_8_4_5_3_0_config15_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_28",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_29",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_30",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_31",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_32",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_33",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_34",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_35",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_dense_36",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4121,
+      "LUT": 13145,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_13_9_4_0_0_config15_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config15_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 41215,
+      "LUT": 131571,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "einsum_ap_ufixed_ap_fixed_13_9_4_0_0_ap_fixed_15_8_4_0_0_config18_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 400,
+      "FF": 233943,
+      "LUT": 257749,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "14",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_15_8_4_0_0_config20_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "cast_ap_fixed_15_8_4_0_0_ap_fixed_15_8_4_0_0_config20_dense_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 88,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_9",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_8",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_7",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_6",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_5",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_4",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_3",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_2",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_1",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_15_8_4_0_0_config20_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8280,
+      "LUT": 18174,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_15_8_4_0_0_config20_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_15_8_4_0_0_ap_fixed_15_8_4_0_0_config20_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 82820,
+      "LUT": 181829,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "normalize_ap_fixed_15_8_4_0_0_ap_fixed_19_3_5_3_0_config22_s",
+      "role": "affine",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 16000,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "add_ap_fixed_ap_fixed_19_3_5_3_0_ap_fixed_24_8_5_3_0_config23_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 9920,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_4_5_3_0_ap_fixed_8_4_5_3_0_config25_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_9",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_8",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_7",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_6",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_5",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_4",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_3",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_2",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_1",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config25_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4099,
+      "LUT": 23493,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_26_10_5_3_0_config25_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_5_3_0_ap_fixed_26_10_5_3_0_config25_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 40994,
+      "LUT": 235046,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "thresholded_relu_ap_fixed_ap_ufixed_ap_ufixed_thresholdedrelu_config26_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 21761,
+      "LUT": 128000,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "1",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_ufixed_ap_ufixed_15_8_4_0_0_config28_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "cast_ap_ufixed_15_8_4_0_0_ap_fixed_16_9_4_0_0_config28_dense_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 93,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_9",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_8",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_7",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_6",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_5",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_4",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_3",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_2",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_1",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_16_9_4_0_0_config28_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 14710,
+      "LUT": 35870,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_16_9_4_0_0_config28_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_ufixed_15_8_4_0_0_ap_fixed_16_9_4_0_0_config28_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 147120,
+      "LUT": 358789,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "normalize_ap_fixed_16_9_4_0_0_ap_fixed_20_4_5_3_0_config30_s",
+      "role": "affine",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 16960,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "add_ap_fixed_ap_fixed_20_4_5_3_0_ap_fixed_25_9_5_3_0_config31_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 10240,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_4_5_3_0_ap_fixed_8_4_5_3_0_config33_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_64",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_65",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_66",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_67",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_68",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_69",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_70",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_71",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_dense_72",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3909,
+      "LUT": 12792,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_13_9_4_0_0_config33_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config33_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 39095,
+      "LUT": 128041,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_4_5_3_0_ap_fixed_8_4_5_3_0_config35_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_73",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_74",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_75",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_76",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_77",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_78",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_79",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_80",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_dense_81",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 4061,
+      "LUT": 13011,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_13_9_4_0_0_config35_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config35_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 40615,
+      "LUT": 130231,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "einsum_ap_fixed_ap_fixed_13_9_4_0_0_ap_fixed_29_21_5_3_0_config38_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 400,
+      "FF": 80040,
+      "LUT": 136469,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "softmax_stable_ap_fixed_ap_ufixed_23_1_4_0_0_softmax_config39_s",
+      "role": "softmax",
+      "BRAM_18K": 9,
+      "DSP": 10,
+      "FF": 4233,
+      "LUT": 4214,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "16",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_4_5_3_0_ap_fixed_8_4_5_3_0_config41_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_82",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_83",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_84",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_85",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_86",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_87",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_88",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_89",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_dense_90",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3993,
+      "LUT": 12916,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_13_9_4_0_0_config41_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_4_5_3_0_ap_fixed_13_9_4_0_0_config41_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 39935,
+      "LUT": 129281,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "4",
+        "ii": "5"
+      }
+    },
+    {
+      "module": "einsum_ap_ufixed_ap_fixed_13_9_4_0_0_ap_fixed_16_9_4_0_0_config44_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 400,
+      "FF": 235156,
+      "LUT": 258389,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "14",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_16_9_4_0_0_config46_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "cast_ap_fixed_16_9_4_0_0_ap_fixed_17_10_4_0_0_config46_dense_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 94,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_9",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_8",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_7",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_6",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_5",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_4",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_3",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_2",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_1",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_17_10_4_0_0_config46_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 8976,
+      "LUT": 18697,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_17_10_4_0_0_config46_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_16_9_4_0_0_ap_fixed_17_10_4_0_0_config46_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 89780,
+      "LUT": 187059,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "10",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "normalize_ap_fixed_17_10_4_0_0_ap_fixed_21_5_5_3_0_config48_s",
+      "role": "affine",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 17600,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "add_ap_fixed_ap_fixed_21_5_5_3_0_ap_fixed_26_10_5_3_0_config49_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 10560,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_8_5_5_3_0_ap_fixed_8_5_5_3_0_config51_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_9",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_8",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_7",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_6",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_5",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_4",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_3",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_2",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_1",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_ap_fixed_26_10_5_3_0_config51_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 3922,
+      "LUT": 24143,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_26_10_5_3_0_config51_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_fixed_8_5_5_3_0_ap_fixed_26_10_5_3_0_config51_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 39223,
+      "LUT": 241540,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "2",
+        "ii": "3"
+      }
+    },
+    {
+      "module": "thresholded_relu_ap_fixed_ap_ufixed_ap_ufixed_thresholdedrelu_config52_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 23041,
+      "LUT": 121600,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "1",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "transpose_ap_ufixed_ap_ufixed_16_9_4_0_0_config54_tpose_inp_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "cast_ap_ufixed_16_9_4_0_0_ap_fixed_18_11_4_0_0_config54_dense_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 97,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_9",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_8",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_7",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_6",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_5",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_4",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_3",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_2",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_1",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_ap_fixed_18_11_4_0_0_config54_dense_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 15672,
+      "LUT": 37373,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "transpose_ap_fixed_ap_fixed_18_11_4_0_0_config54_tpose_out_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 0,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "einsum_dense_ap_ufixed_16_9_4_0_0_ap_fixed_18_11_4_0_0_config54_s",
+      "role": "einsum",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 156740,
+      "LUT": 373819,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "11",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "normalize_ap_fixed_18_11_4_0_0_ap_fixed_22_6_5_3_0_config56_s",
+      "role": "affine",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 18240,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "add_ap_fixed_ap_fixed_22_6_5_3_0_ap_fixed_27_11_5_3_0_config57_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 10880,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "global_pooling1d_cl_ap_fixed_ap_fixed_8_4_4_0_0_config58_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 64,
+      "FF": 21059,
+      "LUT": 27045,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "18",
+        "ii": "8"
+      }
+    },
+    {
+      "module": "dense_latency_ap_fixed_8_4_4_0_0_ap_fixed_26_10_5_3_0_config60_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 2609,
+      "LUT": 14271,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "thresholded_relu_ap_fixed_ap_ufixed_ap_ufixed_thresholdedrelu_config61_s",
+      "role": "other",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 1153,
+      "LUT": 6080,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "1",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "dense_latency_ap_ufixed_16_9_4_0_0_ap_fixed_16_9_4_0_0_config63_s",
+      "role": "dense",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 1385,
+      "LUT": 4888,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "3",
+        "ii": "4"
+      }
+    },
+    {
+      "module": "normalize_ap_fixed_16_9_4_0_0_ap_fixed_21_5_5_3_0_config65_s",
+      "role": "affine",
+      "BRAM_18K": 0,
+      "DSP": 0,
+      "FF": 0,
+      "LUT": 275,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "0",
+        "ii": "1"
+      }
+    },
+    {
+      "module": "myproject",
+      "role": "other",
+      "BRAM_18K": 90,
+      "DSP": 1764,
+      "FF": 1919421,
+      "LUT": 3910515,
+      "URAM": 0,
+      "latency": {
+        "worst_cycles": "218",
+        "ii": "8"
+      }
+    }
+  ],
+  "note": "per-Module (per-function) synthesis table from ModuleInformation; top_total is the whole-probe AreaEstimates. Instances of the same module share one entry (Vitis reports unique modules)."
+}

@@ -1,0 +1,530 @@
+#!/usr/bin/env python3
+"""ROC curves for the trained BitNet jet-tagger runs (multi-run overlay).
+
+Dataset (since 2026-07-01): the public HLS4ML LHC Jet dataset (150 particles)
+(Zenodo; arXiv:1804.06913 + 1908.05318) — 5-class one-hot target (g/q/W/Z/t),
+constituent lists truncated to the top-N_PART by pT (mirror of
+qkerasModel.load_hls4ml_jets). On NRP the held-out evaluation split lives at
+/data/hls4ml_lhc_jet/val/val (~26 files × 10k jets).
+
+Two subcommands:
+  eval  load ONE saved model + the held-out val/ directory, write {y, score} .npz
+        (y one-hot (N,5), score softmax probabilities (N,5))
+  plot  aggregate several .npz files into per-class overlaid ROC figures + an
+        AUC table (per-class one-vs-rest + macro average)
+
+Why per-model processes: qkerasModel bakes BN_VARIANT / BN_ACT_BITS /
+BN_SOFTMAX_FREE into module globals at import, and BitLinear/activation_quant read
+them at call time. They are NOT stored in the layer configs, so each model must be
+evaluated in a process whose env matches how it was trained. The launcher exports
+the right env before each `eval` call.
+
+Input standardization (BN_STANDARDIZE, added 2026-07-13) is the ONE exception to that
+rule, deliberately: a model trained with the per-feature affine carries its 16 mean/std
+constants in a `<stem>_standardizer.npz` sidecar next to the checkpoint, and `eval` picks
+that up and applies it whether or not the launcher remembered the env var. Forgetting the
+transform would be silently wrong, so the file — not the environment — is authoritative;
+an explicit BN_STANDARDIZE that contradicts the sidecar is a hard error. The constants are
+only ever READ. Re-fitting them on the eval split is a different transform and is refused.
+
+Unlike the old 2-file format (which had no saved test set and needed a fixed-seed
+held-out tail), this dataset ships a dedicated val/ split that training never
+touches (training uses validation_split on train/ only) — a true ROC-test set.
+Still: NEVER conflate val_auc (the training monitor) with roc_test_auc (this
+file's output); they are different data and different evaluations by design
+(decisions.md 2026-06-22).
+"""
+import argparse
+import glob
+import hashlib
+import json
+import os
+import sys
+
+import numpy as np
+
+N_FEAT   = 16
+N_PART   = int(os.environ.get("BN_N_PART", 10))   # mirror qkerasModel default
+N_CLASSES = 5
+CLASS_LABELS = ["j_g", "j_q", "j_w", "j_z", "j_t"]   # one-hot columns, BY NAME
+CLASS_NICE   = ["g", "q", "W", "Z", "t"]
+
+# ── Input standardization (BN_STANDARDIZE) ────────────────────────────────────────────
+# A checkpoint trained with BN_STANDARDIZE=1 is only correct if inference applies the
+# IDENTICAL per-feature affine, so qkerasModel persists the 16 mean/std constants beside
+# the .h5 as <stem>_standardizer.npz. We READ those. We NEVER re-fit on the eval split:
+# eval-fit constants are a different transform, and the resulting AUC would be quietly wrong.
+#
+# The SIDECAR IS AUTHORITATIVE. If it sits next to the checkpoint, that checkpoint needs it,
+# and we apply it even when the launcher forgot to export BN_STANDARDIZE — the dominant
+# failure mode is *omitting* the transform, which is silent. BN_STANDARDIZE, when EXPLICITLY
+# set, acts as an assertion: any disagreement with the sidecar is a hard error, never a
+# quiet fallback. Unset + no sidecar (every pre-2026-07-13 run) = the historical path,
+# untouched, not one array copied.
+_STD_ENV = os.environ.get("BN_STANDARDIZE")            # None = unset  (tri-state, on purpose)
+STANDARDIZE_ENV = (None if _STD_ENV is None
+                   else _STD_ENV not in ("0", "", "false", "False", "no"))
+
+
+# ---- MIRROR of qkerasModel._padding_mask / apply_input_standardizer / load_… ----------
+# A numpy-only copy, deliberately: make_roc must standardize WITHOUT importing qkerasModel
+# (TF + tfmot), and the ROC job ships THIS FILE ALONE via the kai-roc-script-r5 ConfigMap.
+# Same convention as bnhgq2/data.py mirroring make_roc.load_eval_set.
+#
+# Drift between the two copies is caught HARD, not silently: the sidecar carries
+# `probe_sha256` = sha256 of the transform applied to a fixed synthetic tensor THAT CONTAINS
+# PADDED ROWS. cmd_eval recomputes it with the code below and refuses to run on a mismatch,
+# so a missing re-zero / different eps / different op order here cannot produce a plausible
+# but wrong AUC. If you change the math in qkerasModel, change it here too.
+def _padding_mask(X):
+    """True = real particle, False = zero-padded slot. MUST be taken on RAW inputs:
+    after the affine a padded row is -mean/std (nonzero), so `.any(-1)` would be all-True."""
+    return np.asarray(X).any(axis=-1)
+
+
+def apply_input_standardizer(X, stats):
+    """x' = (x - mean)/(std + eps), with the zero-padded particles RE-ZEROED (they must stay
+    inert: 0 in → 0 out, exactly as raw padding behaves today)."""
+    X    = np.asarray(X, dtype=np.float32)
+    real = _padding_mask(X)                                  # RAW rows
+    mean = np.asarray(stats["mean"], dtype=np.float32)
+    std  = np.asarray(stats["std"],  dtype=np.float32)
+    eps  = np.float32(stats["eps"])
+    Xs = (X - mean) / (std + eps)
+    Xs[~real] = np.float32(0.0)                              # ← re-zero the padding
+    return Xs
+
+
+def _standardizer_probe(n_feat):
+    """Fixed probe tensor WITH padded rows (no np.random: Generator streams are not
+    guaranteed stable across numpy versions, and a false alarm here would be worse)."""
+    n, p = 8, 10
+    x = ((np.arange(n * p * n_feat, dtype=np.float64).reshape(n, p, n_feat) % 37.0) - 18.0
+         ).astype(np.float32)
+    x[:, -2:, :] = 0.0
+    x[0, 0, :]   = 0.0
+    return x
+
+
+def _standardizer_probe_sha256(stats):
+    probe = apply_input_standardizer(_standardizer_probe(int(stats["n_feat"])), stats)
+    return hashlib.sha256(np.ascontiguousarray(probe, dtype=np.float32).tobytes()).hexdigest()
+
+
+def load_input_standardizer(path):
+    """Read the persisted constants from .npz (canonical) or .json. Never re-fits anything."""
+    if str(path).endswith(".json"):
+        with open(path) as fh:
+            src = json.load(fh)
+        stats = dict(src)
+    else:
+        z = np.load(path, allow_pickle=False)
+        stats = json.loads(str(z["meta"]))
+        src = {"mean": z["mean"], "std": z["std"], "eps": z["eps"]}
+    stats["mean"] = np.asarray(src["mean"], dtype=np.float64)
+    stats["std"]  = np.asarray(src["std"],  dtype=np.float64)
+    stats["eps"]  = float(src["eps"])
+    return stats
+# ---- end mirror -----------------------------------------------------------------------
+
+
+def find_input_standardizer(out_dir, model_h5, explicit=""):
+    """Locate the constants: --stats > $BN_STD_STATS > sidecar beside the ckpt > out_dir glob.
+
+    Returns None when there is no standardizer anywhere — which is the correct answer for
+    every checkpoint trained before 2026-07-13 and for every BN_STANDARDIZE=0 run.
+    """
+    for src, p in (("--stats", explicit), ("$BN_STD_STATS", os.environ.get("BN_STD_STATS", ""))):
+        p = (p or "").strip()
+        if p:
+            if not os.path.exists(p):
+                raise FileNotFoundError(f"{src}={p} does not exist")
+            return p
+    stem = model_h5
+    for suf in ("_bitnetJetTagModel.h5", ".h5", ".keras"):
+        if stem.endswith(suf):
+            stem = stem[: -len(suf)]
+            break
+    for cand in (stem + "_standardizer.npz", stem + "_standardizer.json"):
+        if os.path.exists(cand):
+            return cand
+    hits = sorted(glob.glob(os.path.join(out_dir, "**", "*_standardizer.npz"), recursive=True))
+    return hits[-1] if hits else None
+
+
+def _stats_from_h5(model_h5):
+    """Read constants EMBEDDED in the checkpoint's own HDF5 root attrs (qkerasModel writes
+    them there as well as to the sidecar). This is the strongest source: a sidecar can be
+    separated from the .h5 — /work is an emptyDir and checkpoints travel via W&B — but the
+    checkpoint cannot be separated from itself. Returns None for any pre-2026-07-13 model."""
+    try:
+        import h5py
+        with h5py.File(model_h5, "r") as f:
+            if int(f.attrs.get("bn_standardize", 0)) != 1:
+                return None
+            def _s(k, default=""):
+                v = f.attrs.get(k, default)
+                return v.decode() if isinstance(v, bytes) else str(v)
+            return {"mean": np.asarray(f.attrs["bn_std_mean"], dtype=np.float64),
+                    "std":  np.asarray(f.attrs["bn_std_std"],  dtype=np.float64),
+                    "eps":  float(f.attrs["bn_std_eps"]),
+                    "n_feat": int(f.attrs.get("bn_std_n_feat", N_FEAT)),
+                    "probe_sha256": _s("bn_std_probe_sha256"),
+                    "n_particles_fit": int(f.attrs.get("bn_std_n_particles_fit", 0)),
+                    "feature_names": json.loads(_s("bn_std_feature_names", "[]") or "[]")}
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def resolve_input_standardizer(out_dir, model_h5, explicit=""):
+    """Decide whether to standardize, and hard-fail on any contradiction. → (stats|None, src|None).
+
+    TWO independent sources, either of which proves the checkpoint needs the transform:
+      * the .h5's own `bn_standardize` attrs  (inseparable from the model — the strongest);
+      * a `<stem>_standardizer.npz|.json` sidecar (also --stats / $BN_STD_STATS).
+    Whichever is found is AUTHORITATIVE: we apply it even when the launcher forgot to export
+    BN_STANDARDIZE, because *omitting* the transform is the silent failure. If both exist they
+    must agree (probe hash) or we stop. An explicit BN_STANDARDIZE that contradicts them is a
+    hard error. Truth table (`have` = either source found):
+        BN_STANDARDIZE unset,  have=False → raw inputs         (the historical path, untouched)
+        BN_STANDARDIZE unset,  have=True  → APPLY              (fail-safe)
+        BN_STANDARDIZE=1,      have=False → FileNotFoundError  (never re-fit on the eval split)
+        BN_STANDARDIZE=1,      have=True  → APPLY
+        BN_STANDARDIZE=0,      have=True  → RuntimeError       (would be silently wrong)
+        BN_STANDARDIZE=0,      have=False → raw inputs
+    """
+    path = find_input_standardizer(out_dir, model_h5, explicit)
+    embedded = _stats_from_h5(model_h5)
+    stats, src = None, None
+    if path is not None:
+        stats, src = load_input_standardizer(path), path
+    elif embedded is not None:
+        stats, src = embedded, f"{model_h5} (embedded h5 attrs)"
+
+    if stats is not None and embedded is not None and path is not None:
+        a, b = stats.get("probe_sha256"), embedded.get("probe_sha256")
+        if a and b and a != b:
+            raise RuntimeError(
+                f"the sidecar {path} and the constants baked into {model_h5} DISAGREE "
+                f"(probe {a} vs {b}) — they describe different transforms. Refusing to guess.")
+
+    if stats is None:
+        if STANDARDIZE_ENV is True:
+            raise FileNotFoundError(
+                f"BN_STANDARDIZE=1 but {model_h5} carries no bn_standardize attrs and no "
+                f"*_standardizer.npz was found beside it, under {out_dir}, in $BN_STD_STATS or "
+                f"--stats. The 16 mean/std constants are PART OF THIS MODEL: evaluating it on raw "
+                f"inputs would be silently wrong, and re-fitting them on the eval split is "
+                f"forbidden (that is a different transform). Recover them from the run's W&B files.")
+        return None, None
+    if STANDARDIZE_ENV is False:
+        raise RuntimeError(
+            f"BN_STANDARDIZE is explicitly 0 but {src} says this checkpoint WAS trained on "
+            f"standardized inputs. Evaluating it on raw inputs would produce a plausible, wrong "
+            f"AUC. Unset BN_STANDARDIZE (or set it to 1), or point --out-dir at a different run.")
+    if int(stats.get("n_feat", N_FEAT)) != N_FEAT:
+        raise RuntimeError(f"{src}: n_feat={stats['n_feat']} but this eval builds {N_FEAT} features")
+    want, got = stats.get("probe_sha256"), _standardizer_probe_sha256(stats)
+    if want and want != got:
+        raise RuntimeError(
+            f"standardizer DRIFT: {src} was written by a transform with probe hash {want}, but "
+            f"apply_input_standardizer() in this file yields {got}. The training-side and eval-side "
+            f"transforms have diverged (re-zero? eps? op order?) — refusing to emit wrong AUCs.")
+    return stats, src
+
+
+def load_eval_set(data_dir, max_n=0, seed=1234):
+    """Load every jetImage_*.h5 in data_dir → X (N,N_PART,16), y one-hot (N,5).
+
+    Constituents are re-sorted by constituent pT (descending) before truncation,
+    exactly as in qkerasModel.load_hls4ml_jets, so train and eval see the same
+    top-N definition. Label columns are located by name via jetFeatureNames.
+    """
+    import h5py
+    files = sorted(glob.glob(os.path.join(data_dir, "*.h5")))
+    if not files:
+        raise FileNotFoundError(f"no .h5 files in {data_dir}")
+
+    def _names(ds):
+        return [n.decode() if isinstance(n, bytes) else str(n) for n in ds]
+
+    Xs, Ys = [], []
+    for fp in files:
+        with h5py.File(fp, "r") as hf:
+            const  = hf["jetConstituentList"][:]
+            jets   = hf["jets"][:]
+            jnames = _names(hf["jetFeatureNames"][:])
+            pnames = _names(hf["particleFeatureNames"][:])
+        missing = [l for l in CLASS_LABELS if l not in jnames]
+        if missing:
+            raise KeyError(f"{fp}: labels {missing} not in jetFeatureNames")
+        lab_idx = [jnames.index(l) for l in CLASS_LABELS]
+        pt_col = next((i for i, n in enumerate(pnames) if n.endswith("_pt")), None)
+        if pt_col is not None:
+            order = np.argsort(-const[:, :, pt_col], axis=1, kind="stable")
+            const = np.take_along_axis(const, order[:, :, None], axis=1)
+        Xs.append(const[:, :N_PART, :].astype("float32"))
+        Ys.append(jets[:, lab_idx].astype("float32"))
+    X, y = np.concatenate(Xs), np.concatenate(Ys)
+    if max_n and len(X) > max_n:
+        idx = np.random.default_rng(seed).permutation(len(X))[:max_n]
+        X, y = X[idx], y[idx]
+    return X, y
+
+
+def find_model(out_dir):
+    hits = [h for h in glob.glob(os.path.join(out_dir, "**", "*_bitnetJetTagModel.h5"),
+                                 recursive=True)
+            if "preS3" not in os.path.basename(h)]   # skip pre-stage3 checkpoints
+    if not hits:
+        raise FileNotFoundError(f"no *_bitnetJetTagModel.h5 under {out_dir}")
+    hits.sort(key=os.path.getmtime)
+    return hits[-1]
+
+
+def load_trained_model(h5):
+    import tensorflow as tf
+    import qkerasModel as M   # reads BN_VARIANT/BN_ACT_BITS/... globals at import
+    co = {n: getattr(M, n) for n in
+          ("BitLinear", "RMSNorm", "BitMHSA", "BitFFN", "BitTransformerBlock",
+           "AbsMeanQuantizer") if hasattr(M, n)}
+    try:
+        return tf.keras.models.load_model(h5, custom_objects=co, compile=False), "load_model"
+    except Exception as e:                   # robust fallback: rebuild arch from env + load weights
+        sys.stderr.write(f"[roc] load_model failed ({e!r}); rebuilding + load_weights\n")
+        model = M.build_bitnet_jet_tagger()
+        model.load_weights(h5)
+        return model, "rebuild+load_weights"
+
+
+def _softmax(z):
+    z = z - z.max(axis=1, keepdims=True)
+    e = np.exp(z)
+    return e / e.sum(axis=1, keepdims=True)
+
+
+def _runkey(meta):
+    if meta["variant"] == "vanilla":
+        return "FP32"
+    if meta["variant"] == "w8a8":
+        return "W8A8"
+    return f"A{meta['act_bits']}"            # bitnet -> A8 / A6 / A4
+
+
+def _wandb_log_roc(meta, y, score, png=None):
+    """OPT-IN (--wandb): log ROC-test AUCs + per-class ROC curves to W&B.
+
+    Never lets a W&B failure kill the eval — the .npz on the PVC stays the durable
+    source of truth; W&B is a viewing convenience. Requires WANDB_API_KEY in env.
+    """
+    try:
+        import wandb
+        from sklearn.metrics import roc_curve
+        run = wandb.init(project=os.environ.get("WANDB_PROJECT", "bnjettag-bitnet"),
+                         name=f"roc-{meta['label']}", job_type="roc-eval",
+                         config={k: meta[k] for k in
+                                 ("label", "variant", "act_bits", "softmax_free", "n", "model")},
+                         reinit=True)
+        run.summary["roc_test_auc_macro"] = meta["auc"]
+        for c, v in meta["auc_per_class"].items():
+            run.summary[f"roc_test_auc_{c}"] = v
+        run.summary["n_eval"] = meta["n"]
+        for k, c in enumerate(CLASS_NICE):
+            fpr, tpr, _ = roc_curve(y[:, k], score[:, k])
+            step = max(1, len(fpr) // 500)       # <=~500 points; the curve is smooth
+            # HEP convention (matches the matplotlib overlay): x = tagging
+            # efficiency (TPR), y = mistag rate (FPR).
+            tbl = wandb.Table(data=[[float(t), float(f)] for f, t in
+                                    zip(fpr[::step], tpr[::step])],
+                              columns=["efficiency", "mistag_rate"])
+            run.log({f"roc_curve_{c}": wandb.plot.line(
+                tbl, "efficiency", "mistag_rate",
+                title=f"ROC {meta['label']} {c} (AUC={meta['auc_per_class'][c]:.4f})")})
+        if png and os.path.exists(png):
+            run.log({"roc_overlay": wandb.Image(png)})
+        run.finish()
+        print(f"[roc] wandb: logged roc-{meta['label']} (macro AUC={meta['auc']:.4f})")
+    except Exception as e:
+        sys.stderr.write(f"[roc] wandb logging skipped: {e!r}\n")
+
+
+def cmd_eval(a):
+    os.environ.setdefault("MPLBACKEND", "Agg")
+    X, y = load_eval_set(a.data, a.max_n, a.seed)
+    h5 = find_model(a.out_dir)
+
+    # Apply the model's OWN persisted input transform (or none, if it has none). Hard-fails
+    # on any contradiction — see resolve_input_standardizer. Done BEFORE predict(), on the
+    # raw eval X, exactly as training did it on the raw train X.
+    std_stats, std_src = resolve_input_standardizer(a.out_dir, h5, a.stats)
+    if std_stats is not None:
+        X = apply_input_standardizer(X, std_stats)
+        print(f"[roc] standardized inputs ← {std_src}  (fit on "
+              f"{std_stats.get('n_particles_fit', '?')} non-padded TRAIN particles, "
+              f"eps={std_stats['eps']:g}, probe={std_stats['probe_sha256'][:16]}…)")
+
+    model, how = load_trained_model(h5)
+    logits = model.predict(X, batch_size=a.batch, verbose=0)
+    assert logits.shape[1] == N_CLASSES, \
+        f"model outputs {logits.shape[1]} logits, expected {N_CLASSES} — old-format checkpoint?"
+    # per-class OvR ROC needs a probability-like per-class score → softmax.
+    # (Per-class AUC on softmax probs is the standard hls4ml jet-tagging metric.)
+    score = _softmax(logits.astype("float64")).astype("float32")
+    from sklearn.metrics import roc_auc_score
+    per_class = {c: float(roc_auc_score(y[:, k], score[:, k]))
+                 for k, c in enumerate(CLASS_NICE)}
+    auc_macro = float(np.mean(list(per_class.values())))
+    meta = dict(label=a.label, auc=auc_macro, auc_per_class=per_class,
+                n=int(len(y)), model=os.path.basename(h5), how=how,
+                variant=os.environ.get("BN_VARIANT", "bitnet"),
+                act_bits=int(os.environ.get("BN_ACT_BITS", "8")),
+                softmax_free=os.environ.get("BN_SOFTMAX_FREE", "0"),
+                # The .npz is the durable source of truth, so it records EXACTLY which input
+                # transform produced these scores — verification can be done from it alone.
+                standardized=bool(std_stats is not None),
+                standardizer=(None if std_stats is None else {
+                    "source": std_src, "eps": std_stats["eps"],
+                    "probe_sha256": std_stats["probe_sha256"],
+                    "n_particles_fit": std_stats.get("n_particles_fit"),
+                    "feature_names": std_stats.get("feature_names", []),
+                    "mean": [float(v) for v in std_stats["mean"]],
+                    "std":  [float(v) for v in std_stats["std"]]}))
+    os.makedirs(os.path.dirname(os.path.abspath(a.npz)), exist_ok=True)
+    np.savez_compressed(a.npz, y=y.astype("float32"), score=score,
+                        meta=json.dumps(meta))
+    percls = "  ".join(f"{c}={v:.4f}" for c, v in per_class.items())
+    print(f"[roc] {a.label:24s} macroAUC={auc_macro:.4f}  [{percls}]  "
+          f"n={meta['n']:>8d}  via {how}  ({meta['model']})")
+    if a.wandb:
+        _wandb_log_roc(meta, y, score)
+
+
+COLORS = {"A8": "#56b4b0", "A6": "#e6a817", "A4": "#cf3bc4",
+          "W8A8": "#d2691e", "FP32": "#e87bd0"}
+ORDER = {"A8": 0, "A6": 1, "A4": 2, "W8A8": 3, "FP32": 4}
+
+
+def cmd_plot(a):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import roc_curve, auc as auc_of
+
+    files = sorted(glob.glob(a.glob))
+    if not files:
+        raise FileNotFoundError(f"no .npz match {a.glob}")
+    runs = []
+    for f in files:
+        d = np.load(f, allow_pickle=True)
+        m = json.loads(str(d["meta"]))
+        y, score = d["y"], d["score"]
+        curves, aucs = {}, {}
+        for k, c in enumerate(CLASS_NICE):
+            fpr, tpr, _ = roc_curve(y[:, k], score[:, k])
+            curves[c] = (fpr, tpr)
+            aucs[c] = float(auc_of(fpr, tpr))
+        m.update(curves=curves, auc_per_class=aucs,
+                 auc=float(np.mean(list(aucs.values()))), key=_runkey(m))
+        runs.append(m)
+    runs.sort(key=lambda m: ORDER.get(m["key"], 99))
+
+    # One panel per class (HEP style: signal eff. vs log-y mistag), runs overlaid.
+    fig, axes = plt.subplots(2, 3, figsize=(16.5, 9.6), dpi=150)
+    axes = axes.ravel()
+    for k, c in enumerate(CLASS_NICE):
+        ax = axes[k]
+        for m in runs:
+            fpr, tpr = m["curves"][c]
+            ok = fpr > 0
+            ax.plot(tpr[ok], fpr[ok], color=COLORS.get(m["key"]), lw=1.6,
+                    label=f'{m["label"]} (AUC={m["auc_per_class"][c]:.4f})')
+        ax.set_yscale("log")
+        ax.set(xlabel=f"{c} tagging efficiency (TPR)",
+               ylabel="Mistag rate (FPR, one-vs-rest)",
+               title=f"{c} vs rest", xlim=(0, 1))
+        ax.legend(loc="upper left", fontsize=7)
+        ax.grid(alpha=0.3, which="both")
+    # last cell: macro-AUC summary
+    axm = axes[-1]
+    axm.axis("off")
+    lines = [f'{m["label"]:24s} macro AUC = {m["auc"]:.4f}' for m in runs]
+    axm.text(0.02, 0.95, "Macro (mean OvR) AUC\n" + "\n".join(lines),
+             family="monospace", fontsize=9, va="top")
+    fig.suptitle(a.title, fontsize=13)
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    os.makedirs(os.path.dirname(os.path.abspath(a.png)), exist_ok=True)
+    fig.savefig(a.png)
+    print(f"[roc] wrote {a.png}")
+
+    hdr = "| run | variant | act bits | " + " | ".join(f"AUC({c})" for c in CLASS_NICE) \
+          + " | macro | n_eval |"
+    sep = "|" + "---|" * (len(CLASS_NICE) + 5)
+    rows = [hdr, sep]
+    rows += ["| {label} | {variant} | {act_bits} | ".format(**m)
+             + " | ".join(f'{m["auc_per_class"][c]:.4f}' for c in CLASS_NICE)
+             + f' | **{m["auc"]:.4f}** | {m["n"]} |'
+             for m in runs]
+    table = "\n".join(rows) + "\n"
+    if a.table:
+        with open(a.table, "w") as fh:
+            fh.write(table)
+        print(f"[roc] wrote {a.table}")
+    print(table)
+
+    if a.wandb:
+        try:
+            import wandb
+            run = wandb.init(project=os.environ.get("WANDB_PROJECT", "bnjettag-bitnet"),
+                             name="roc-overlay", job_type="roc-plot", reinit=True)
+            run.log({"roc_overlay": wandb.Image(a.png)})
+            cols = ["run", "variant", "act_bits"] + \
+                   [f"auc_{c}" for c in CLASS_NICE] + ["auc_macro", "n_eval"]
+            run.log({"roc_auc_table": wandb.Table(
+                columns=cols,
+                data=[[m["label"], m["variant"], m["act_bits"]]
+                      + [m["auc_per_class"][c] for c in CLASS_NICE]
+                      + [m["auc"], m["n"]]
+                      for m in runs])})
+            run.finish()
+            print("[roc] wandb: logged overlay + AUC table")
+        except Exception as e:
+            sys.stderr.write(f"[roc] wandb logging skipped: {e!r}\n")
+
+
+def main():
+    p = argparse.ArgumentParser(description="ROC curves for BitNet jet-tagger runs "
+                                            "(HLS4ML LHC Jet 150p, 5-class)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    e = sub.add_parser("eval", help="evaluate one model -> .npz")
+    e.add_argument("--out-dir", required=True, help="run dir holding *_bitnetJetTagModel.h5")
+    e.add_argument("--data", required=True,
+                   help="held-out eval dir of jetImage_*.h5 (NRP: /data/hls4ml_lhc_jet/val/val)")
+    e.add_argument("--npz", required=True)
+    e.add_argument("--label", required=True)
+    e.add_argument("--seed", type=int, default=1234, help="subsample seed (with --max-n)")
+    e.add_argument("--max-n", type=int, default=0, help="0 = evaluate the full val set")
+    e.add_argument("--batch", type=int, default=8192)
+    e.add_argument("--stats", default="",
+                   help="explicit path to the run's <stem>_standardizer.npz|.json "
+                        "(default: auto-locate beside the checkpoint; also $BN_STD_STATS). "
+                        "These constants are only ever READ — never re-fit on the eval split.")
+    e.add_argument("--wandb", action="store_true",
+                   help="also log AUCs + ROC curves to W&B (needs WANDB_API_KEY)")
+    e.set_defaults(fn=cmd_eval)
+
+    q = sub.add_parser("plot", help="aggregate .npz -> per-class ROC png + AUC table")
+    q.add_argument("--glob", required=True)
+    q.add_argument("--png", required=True)
+    q.add_argument("--table", default="")
+    q.add_argument("--title", default="BitNet jet tagger - ROC (HLS4ML LHC Jet 150p, held-out val)")
+    q.add_argument("--wandb", action="store_true",
+                   help="also log the overlay + AUC table to W&B (needs WANDB_API_KEY)")
+    q.set_defaults(fn=cmd_plot)
+
+    a = p.parse_args()
+    a.fn(a)
+
+
+if __name__ == "__main__":
+    main()

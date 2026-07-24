@@ -1,0 +1,50 @@
+{
+  "name": "r7b-tiny-w1a6",
+  "era": 2,
+  "arch": {
+    "n_part": 10,
+    "n_feat": 16,
+    "d_model": 16,
+    "n_heads": 2,
+    "n_layers": 2,
+    "ffn_dim": 32,
+    "n_classes": 5,
+    "pool": "gap",
+    "ffn_act": "relu",
+    "norm": "subln",
+    "norm_placement": "per_linear",
+    "pos_enc": "learned",
+    "softmax_free": false
+  },
+  "quant": {
+    "weight": "binary_absmean",
+    "act_bits": 6,
+    "act_policy": "static_per_tensor_mse_calibrated",
+    "calib_n": 8192,
+    "act_calib": "trainable"
+  },
+  "train": {
+    "data": "/data/hls4ml_lhc_jet/train/train",
+    "validation_split": 0.2,
+    "epochs": 101,
+    "batch": 256,
+    "lr": 0.0001,
+    "warmup_epochs": 1,
+    "decay_epochs": 100,
+    "decay_power": 1.0,
+    "beta2": 0.98,
+    "weight_decay": 0.01,
+    "clip_mode": "value",
+    "clipvalue": 1.0,
+    "clipnorm": 1.0,
+    "es_patience": 15,
+    "wandb_project": "bnjettag-final"
+  },
+  "hls": {
+    "backend": "Vitis",
+    "part": "xcvu13p-flga2577-2-e",
+    "clock_ns": 2.5,
+    "rf": 256,
+    "io": "io_parallel"
+  }
+}

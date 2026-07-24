@@ -1,0 +1,94 @@
+{
+ "written": "2026-07-20T08:54:04",
+ "config": "r8-small-w1a8-stdnn",
+ "config_hash": "97affd53",
+ "variant": "w1a8",
+ "seed": 2,
+ "tag": null,
+ "wandb_run": "final-w1a8-s2",
+ "attn_grids": "build_default",
+ "checkpoint": "bnjettag/r7/models/small-stdnn-s2/model_best.keras",
+ "train_meta": {},
+ "n_bitlayers": 15,
+ "act_ibits": {
+  "input_proj": 3,
+  "bit_block_0_attn_Wq": 3,
+  "bit_block_0_attn_Wk": 3,
+  "bit_block_0_attn_Wv": 3,
+  "bit_block_0_attn_Wo": 2,
+  "bit_block_0_ffn_fc1": 3,
+  "bit_block_0_ffn_fc2": 3,
+  "bit_block_1_attn_Wq": 3,
+  "bit_block_1_attn_Wk": 3,
+  "bit_block_1_attn_Wv": 3,
+  "bit_block_1_attn_Wo": 3,
+  "bit_block_1_ffn_fc1": 4,
+  "bit_block_1_ffn_fc2": 3,
+  "head_fc1": 3,
+  "head_fc2": 3
+ },
+ "norm_free_grids": {
+  "bit_block_0_attn_Wo": {
+   "max": 53.6875,
+   "i": 7,
+   "f": 7,
+   "width": 15
+  },
+  "bit_block_0_ffn_fc2": {
+   "max": 69.232666015625,
+   "i": 8,
+   "f": 7,
+   "width": 16
+  },
+  "bit_block_1_attn_Wo": {
+   "max": 79.0625,
+   "i": 8,
+   "f": 7,
+   "width": 16
+  },
+  "bit_block_1_ffn_fc2": {
+   "max": 166.1883544921875,
+   "i": 9,
+   "f": 7,
+   "width": 17
+  },
+  "head_fc2": {
+   "max": 153.21612548828125,
+   "i": 9,
+   "f": 7,
+   "width": 17
+  }
+ },
+ "gate1": {
+  "n": 4096,
+  "corr_scores": 0.9890697639776108,
+  "corr_logits": 0.9694327330572505,
+  "corr_per_class": [
+   0.9890041974049569,
+   0.9921317591951346,
+   0.9891416502295433,
+   0.9826685962279293,
+   0.995109758661414
+  ],
+  "max_abs_diff_scores": 0.46014383483493126,
+  "mean_abs_diff_scores": 0.020740713581403857,
+  "max_abs_diff_logits": 6.1633124351501465,
+  "argmax_agreement": 0.948486328125,
+  "weight_export_max_abs_diff": 1.4901161193847656e-08,
+  "beta_mode": "csd2"
+ },
+ "gate1_pass": false,
+ "gate1_threshold": 0.9999,
+ "gate1_exact_beta": {
+  "corr_scores": 0.9942271710714645,
+  "corr_logits": 0.9719447216100304,
+  "argmax_agreement": 0.96875,
+  "note": "exact-\u03b2 affine (DSP cost on mulder unmeasured) \u2014 isolates the CSD-2 \u03b2 \u0394"
+ },
+ "gate1_copy_qat_ceiling": {
+  "corr_scores": 0.9959297844909553,
+  "corr_logits": 0.9724591949409851,
+  "argmax_agreement": 0.97998046875,
+  "note": "attn_grids='copy_qat' (QAT attention grids via scaler=1/\u03b2). KERAS-SIDE ceiling: hls4ml's FixedPointQuantizer frontend ignores q.scaler (measured gate-2 below), so this is not hardware-faithful; build_default ships."
+ }
+}
