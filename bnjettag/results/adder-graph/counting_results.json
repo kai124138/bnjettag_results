@@ -1,0 +1,1092 @@
+{
+ "calibration": {
+  "alpha": 0.9234265963468125,
+  "beta": 3411.6731024324863,
+  "r2": 0.9865610687352563,
+  "max_residual": 0.241105680632073,
+  "n_points": 15,
+  "gate_pass": false
+ },
+ "ff_model": {
+  "note": "kappa = FF per bit-add. plain-Latency discipline (Vitis stage cuts) vs the DA emission's II=1 deep-pipelined graph. FR/affine/fold FF projections use kappa_plain (same emission style as Latency); kappa_da is the cautionary bound. The attribution of the measured flip-flop growth was corrected to Vitis pipelining the emitted graph.",
+  "naive_bits_total": 2156123,
+  "kappa_plain": 0.3828329830904823,
+  "kappa_da": 2.3448688352770777,
+  "measured_da_over_plain_ff": 6.946248947524639,
+  "measured_da_over_plain_lut": 1.1340733289057312,
+  "bracket_coherent": true
+ },
+ "small": [
+  {
+   "name": "input_proj",
+   "m": 32,
+   "n": 16,
+   "w_in": 8,
+   "w_acc": 25,
+   "balance": 0.50390625,
+   "naive": {
+    "adds": 512,
+    "bits": 5088,
+    "depth": 5
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 25
+   },
+   "cse": {
+    "saved": 347,
+    "extractions": 53,
+    "capped": false,
+    "bits": 1851
+   },
+   "affine": {
+    "adds": 263,
+    "bits": 2684,
+    "shared_T_adds": 15,
+    "depth": 6
+   },
+   "fr": {
+    "k2": {
+     "adds": 264,
+     "bits": 2856,
+     "depth": 5,
+     "k": 2,
+     "groups": 8
+    },
+    "k4": {
+     "adds": 156,
+     "bits": 1784,
+     "depth": 5,
+     "k": 4,
+     "groups": 4
+    },
+    "k8": {
+     "adds": 318,
+     "bits": 3594,
+     "depth": 5,
+     "k": 8,
+     "groups": 2
+    }
+   },
+   "null": {
+    "cse_saved_mean": 346.7,
+    "cse_saved_std": 3.835361782153021,
+    "affine_adds_mean": 252.15,
+    "seeds": 20
+   },
+   "cfg": 3,
+   "measured_lut": {
+    "per_instance": 8036.3,
+    "instances": 10,
+    "std": 44.450084364374376
+   }
+  },
+  {
+   "name": "bit_block_0_attn_Wq",
+   "m": 32,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 13,
+   "balance": 0.5029296875,
+   "naive": {
+    "adds": 1024,
+    "bits": 10176,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 25
+   },
+   "cse": {
+    "saved": 710,
+    "extractions": 106,
+    "capped": false,
+    "bits": 3517
+   },
+   "affine": {
+    "adds": 514,
+    "bits": 5230,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 5712,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 3568,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 7188,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 7,
+   "measured_lut": {
+    "per_instance": 13047.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_0_attn_Wk",
+   "m": 32,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 13,
+   "balance": 0.4873046875,
+   "naive": {
+    "adds": 1024,
+    "bits": 10176,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 26
+   },
+   "cse": {
+    "saved": 703,
+    "extractions": 109,
+    "capped": false,
+    "bits": 3585
+   },
+   "affine": {
+    "adds": 496,
+    "bits": 5060,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 5712,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 3568,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 7188,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 9,
+   "measured_lut": {
+    "per_instance": 12782.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_0_attn_Wv",
+   "m": 32,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 13,
+   "balance": 0.4970703125,
+   "naive": {
+    "adds": 1024,
+    "bits": 10176,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 25
+   },
+   "cse": {
+    "saved": 705,
+    "extractions": 106,
+    "capped": false,
+    "bits": 3570
+   },
+   "affine": {
+    "adds": 502,
+    "bits": 5116,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 5712,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 3568,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 7188,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 15,
+   "measured_lut": {
+    "per_instance": 13145.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_0_attn_Wo",
+   "m": 32,
+   "n": 32,
+   "w_in": 15,
+   "w_acc": 20,
+   "balance": 0.490234375,
+   "naive": {
+    "adds": 1024,
+    "bits": 17344,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 27
+   },
+   "cse": {
+    "saved": 705,
+    "extractions": 108,
+    "capped": false,
+    "bits": 5801
+   },
+   "affine": {
+    "adds": 491,
+    "bits": 8445,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 9408,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 5752,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 11640,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 20,
+   "measured_lut": {
+    "per_instance": 17822.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_0_ffn_fc1",
+   "m": 64,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 26,
+   "balance": 0.4873046875,
+   "naive": {
+    "adds": 2048,
+    "bits": 20416,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 64,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 44
+   },
+   "cse": {
+    "saved": 1510,
+    "extractions": 171,
+    "capped": false,
+    "bits": 6228
+   },
+   "affine": {
+    "adds": 971,
+    "bits": 9905,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 1040,
+     "bits": 11344,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 568,
+     "bits": 6640,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 764,
+     "bits": 8852,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 1507.95,
+    "cse_saved_std": 12.001979003481052,
+    "affine_adds_mean": 975.25,
+    "seeds": 20
+   },
+   "cfg": 25,
+   "measured_lut": {
+    "per_instance": 23493.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_0_ffn_fc2",
+   "m": 32,
+   "n": 64,
+   "w_in": 15,
+   "w_acc": 22,
+   "balance": 0.50048828125,
+   "naive": {
+    "adds": 2048,
+    "bits": 34784,
+    "depth": 7
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 27
+   },
+   "cse": {
+    "saved": 1438,
+    "extractions": 230,
+    "capped": false,
+    "bits": 11273
+   },
+   "affine": {
+    "adds": 1004,
+    "bits": 17203,
+    "shared_T_adds": 63,
+    "depth": 8
+   },
+   "fr": {
+    "k2": {
+     "adds": 1056,
+     "bits": 18912,
+     "depth": 7,
+     "k": 2,
+     "groups": 32
+    },
+    "k4": {
+     "adds": 624,
+     "bits": 11600,
+     "depth": 7,
+     "k": 4,
+     "groups": 16
+    },
+    "k8": {
+     "adds": 1272,
+     "bits": 23376,
+     "depth": 7,
+     "k": 8,
+     "groups": 8
+    }
+   },
+   "null": {
+    "cse_saved_mean": 1443.5,
+    "cse_saved_std": 4.5,
+    "affine_adds_mean": 1019.95,
+    "seeds": 20
+   },
+   "cfg": 28,
+   "measured_lut": {
+    "per_instance": 35498.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_1_attn_Wq",
+   "m": 32,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 13,
+   "balance": 0.5078125,
+   "naive": {
+    "adds": 1024,
+    "bits": 10176,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 25
+   },
+   "cse": {
+    "saved": 712,
+    "extractions": 109,
+    "capped": false,
+    "bits": 3497
+   },
+   "affine": {
+    "adds": 497,
+    "bits": 5066,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 5712,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 3568,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 7188,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 33,
+   "measured_lut": {
+    "per_instance": 12792.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_1_attn_Wk",
+   "m": 32,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 13,
+   "balance": 0.5087890625,
+   "naive": {
+    "adds": 1024,
+    "bits": 10176,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 26
+   },
+   "cse": {
+    "saved": 699,
+    "extractions": 109,
+    "capped": false,
+    "bits": 3639
+   },
+   "affine": {
+    "adds": 494,
+    "bits": 5042,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 5712,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 3568,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 7188,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 35,
+   "measured_lut": {
+    "per_instance": 13011.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_1_attn_Wv",
+   "m": 32,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 13,
+   "balance": 0.5048828125,
+   "naive": {
+    "adds": 1024,
+    "bits": 10176,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 25
+   },
+   "cse": {
+    "saved": 705,
+    "extractions": 109,
+    "capped": false,
+    "bits": 3569
+   },
+   "affine": {
+    "adds": 502,
+    "bits": 5114,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 5712,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 3568,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 7188,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 41,
+   "measured_lut": {
+    "per_instance": 12916.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_1_attn_Wo",
+   "m": 32,
+   "n": 32,
+   "w_in": 16,
+   "w_acc": 21,
+   "balance": 0.4912109375,
+   "naive": {
+    "adds": 1024,
+    "bits": 18368,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 24
+   },
+   "cse": {
+    "saved": 710,
+    "extractions": 115,
+    "capped": false,
+    "bits": 6065
+   },
+   "affine": {
+    "adds": 504,
+    "bits": 9162,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 9936,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 6064,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 12276,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 46,
+   "measured_lut": {
+    "per_instance": 18321.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_1_ffn_fc1",
+   "m": 64,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 26,
+   "balance": 0.49658203125,
+   "naive": {
+    "adds": 2048,
+    "bits": 20416,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 64,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 46
+   },
+   "cse": {
+    "saved": 1532,
+    "extractions": 160,
+    "capped": false,
+    "bits": 5994
+   },
+   "affine": {
+    "adds": 1002,
+    "bits": 10209,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 1040,
+     "bits": 11344,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 568,
+     "bits": 6640,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 764,
+     "bits": 8852,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 1507.95,
+    "cse_saved_std": 12.001979003481052,
+    "affine_adds_mean": 975.25,
+    "seeds": 20
+   },
+   "cfg": 51,
+   "measured_lut": {
+    "per_instance": 24143.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "bit_block_1_ffn_fc2",
+   "m": 32,
+   "n": 64,
+   "w_in": 16,
+   "w_acc": 23,
+   "balance": 0.50146484375,
+   "naive": {
+    "adds": 2048,
+    "bits": 36832,
+    "depth": 7
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 26
+   },
+   "cse": {
+    "saved": 1446,
+    "extractions": 228,
+    "capped": false,
+    "bits": 11768
+   },
+   "affine": {
+    "adds": 1018,
+    "bits": 18456,
+    "shared_T_adds": 63,
+    "depth": 8
+   },
+   "fr": {
+    "k2": {
+     "adds": 1056,
+     "bits": 19968,
+     "depth": 7,
+     "k": 2,
+     "groups": 32
+    },
+    "k4": {
+     "adds": 624,
+     "bits": 12224,
+     "depth": 7,
+     "k": 4,
+     "groups": 16
+    },
+    "k8": {
+     "adds": 1272,
+     "bits": 24648,
+     "depth": 7,
+     "k": 8,
+     "groups": 8
+    }
+   },
+   "null": {
+    "cse_saved_mean": 1443.5,
+    "cse_saved_std": 4.5,
+    "affine_adds_mean": 1019.95,
+    "seeds": 20
+   },
+   "cfg": 54,
+   "measured_lut": {
+    "per_instance": 36985.0,
+    "instances": 10,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "head_fc1",
+   "m": 32,
+   "n": 32,
+   "w_in": 8,
+   "w_acc": 26,
+   "balance": 0.5029296875,
+   "naive": {
+    "adds": 1024,
+    "bits": 10208,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 32,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 25
+   },
+   "cse": {
+    "saved": 704,
+    "extractions": 110,
+    "capped": false,
+    "bits": 3621
+   },
+   "affine": {
+    "adds": 512,
+    "bits": 5213,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 528,
+     "bits": 5744,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 312,
+     "bits": 3600,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 636,
+     "bits": 7220,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 705.6,
+    "cse_saved_std": 4.758150901348127,
+    "affine_adds_mean": 502.1,
+    "seeds": 20
+   },
+   "cfg": 60,
+   "measured_lut": {
+    "per_instance": 14271.0,
+    "instances": 1,
+    "std": 0.0
+   }
+  },
+  {
+   "name": "head_fc2",
+   "m": 5,
+   "n": 32,
+   "w_in": 16,
+   "w_acc": 22,
+   "balance": 0.51875,
+   "naive": {
+    "adds": 160,
+    "bits": 2875,
+    "depth": 6
+   },
+   "pairs": {
+    "rows": 5,
+    "dup_row_classes": 0,
+    "best_pair_reuse": 5
+   },
+   "cse": {
+    "saved": 100,
+    "extractions": 32,
+    "capped": false,
+    "bits": 1143
+   },
+   "affine": {
+    "adds": 111,
+    "bits": 2007,
+    "shared_T_adds": 31,
+    "depth": 7
+   },
+   "fr": {
+    "k2": {
+     "adds": 96,
+     "bits": 1787,
+     "depth": 6,
+     "k": 2,
+     "groups": 16
+    },
+    "k4": {
+     "adds": 96,
+     "bits": 1803,
+     "depth": 6,
+     "k": 4,
+     "groups": 8
+    },
+    "k8": {
+     "adds": 528,
+     "bits": 10067,
+     "depth": 6,
+     "k": 8,
+     "groups": 4
+    }
+   },
+   "null": {
+    "cse_saved_mean": 98.65,
+    "cse_saved_std": 1.7399712641305316,
+    "affine_adds_mean": 104.45,
+    "seeds": 20
+   },
+   "cfg": 63,
+   "measured_lut": {
+    "per_instance": 4888.0,
+    "instances": 1,
+    "std": 0.0
+   }
+  }
+ ],
+ "fused_qkv_small": {
+  "name": "blk0_qkv_fused",
+  "m": 96,
+  "n": 32,
+  "w_in": 8,
+  "w_acc": 13,
+  "balance": 0.4957682291666667,
+  "naive": {
+   "adds": 3072,
+   "bits": 30528,
+   "depth": 6
+  },
+  "pairs": {
+   "rows": 96,
+   "dup_row_classes": 0,
+   "best_pair_reuse": 63
+  },
+  "cse": {
+   "saved": 2340,
+   "extractions": 207,
+   "capped": false,
+   "bits": 8467
+  },
+  "affine": {
+   "adds": 1450,
+   "bits": 14796,
+   "shared_T_adds": 31,
+   "depth": 7
+  },
+  "fr": {
+   "k2": {
+    "adds": 1552,
+    "bits": 16848,
+    "depth": 6,
+    "k": 2,
+    "groups": 16
+   },
+   "k4": {
+    "adds": 824,
+    "bits": 9584,
+    "depth": 6,
+    "k": 4,
+    "groups": 8
+   },
+   "k8": {
+    "adds": 892,
+    "bits": 10388,
+    "depth": 6,
+    "k": 8,
+    "groups": 4
+   }
+  },
+  "null": {
+   "cse_saved_mean": 2341.35,
+   "cse_saved_std": 16.493256197609977,
+   "affine_adds_mean": 1447.15,
+   "seeds": 20
+  }
+ },
+ "fold": {
+  "census_categories": {
+   "top_glue": 218825,
+   "einsum_dense_wrap": 1392,
+   "glue_other": 374675,
+   "dense_per_token": 2419913,
+   "dense_head": 37399,
+   "einsum_actxact": 789076,
+   "softmax": 42190,
+   "pooling": 27045
+  },
+  "per_token_slice_lut": 241991,
+  "mux_overhead_lut": 15456,
+  "dense_folded": 257947,
+  "glue_folded": 40539,
+  "unfolded": 1115927,
+  "total": 1414413,
+  "ff_slice": 82008,
+  "ff_buffers": 17600,
+  "ii": 10,
+  "ii_budget": 11,
+  "fits": true
+ },
+ "fold_restruct": {
+  "slice_bits_naive": 214304,
+  "slice_bits_best": 72112,
+  "slice_lut_best": 110941,
+  "fold_restruct_total": 1283364,
+  "fits": true
+ },
+ "constants": {
+  "device_lut": 1728000,
+  "clock_ns": 2.157,
+  "ii_budget": 11,
+  "fold": 10,
+  "alpha_lut_per_bitadd": 0.9234265963468125
+ }
+}

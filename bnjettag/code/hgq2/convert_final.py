@@ -24,8 +24,8 @@ Chain (per variant/seed):
   7. store     results/final/runs/<hash>/<variant>-s<seed>[/tag]/: export_verify.json,
                csim_verify.json, ebops.json, convert.json + the hls project + tarball.
 
-Weight quantizer / act policy / β folding are the PROVEN rebuild path (RESEARCH.md §6',
-constraints_map.md).  This driver never modifies qat.py / train.py / build.py semantics.
+Weight quantizer / act policy / β folding are the PROVEN rebuild path
+(results/hgq2/constraints_map.md).  This driver never modifies qat.py / train.py / build.py semantics.
 
 Usage:
   export WANDB_API_KEY=$(cat bnjettag/wandb-api-key.txt)     # never echoed

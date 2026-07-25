@@ -746,7 +746,7 @@ callback + best-checkpoint + LR schedule + early-stop + meta all working, w1a4 N
 ## 2026-07-04 — session close: verified state + what's in flight
 - **Verification PASS** (experiment-log 2026-07-04 ✓): all 27 core
   quantities recomputed independently from raw arrays match to full float precision.
-- RESEARCH.md updated: §2 status, new §6′ (HGQ2 path), §8 provenance rows.
+- Results record updated: status, the HGQ2 conversion path, provenance rows.
 - Dashboard (read-only store view) generated + published as a static page;
   regenerate anytime with `generate_dashboard.py`.
 - **csynth still RUNNING on mulder at close** (fetch with `./fetch_mulder_reports.sh`):

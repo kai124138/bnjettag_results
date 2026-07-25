@@ -31,11 +31,16 @@ Level-1 throughput condition (a new jet every 8 cycles ≈ 17.3 ns, inside the 2
 an end-to-end latency of 0.47 µs, and runs to 0.36 µs when fully unrolled. The cost of the
 binary constraint under matched training and conditioned inputs is 2.6 AUC points, which in
 the trigger's own operating metric is a 35 % loss of background rejection. The model does not
-yet fit a single VU13P: it needs 3.91 M LUTs against 1.728 M available, and closing that gap
-is the open problem.
+yet fit a single VU13P: it needs 3.91 M LUTs against 1.728 M available, and that gap is the
+open problem. On the one layer where a remedy has been synthesized, time-multiplexing a single
+constant-weight datapath over the ten constituents instead of instantiating it ten times costs
+**9.3× fewer lookup tables**, bit-exactly and at zero DSPs, and 18× when composed with a
+subset-sum restructuring of the same dot products. Carried through the measured census, that
+projects a model which fits, where no earlier configuration has. The projection is not a
+synthesis, and Section 7 states exactly what it assumes.
 
 Everything below is recomputed from the per-jet score arrays and raw synthesis reports stored
-in this repository. Section 8 gives the commands.
+in this repository. Section 9 gives the commands.
 
 ---
 
@@ -47,10 +52,11 @@ in this repository. Section 8 gives the commands.
 4. [Tagging efficiency](#4-tagging-efficiency)
 5. [Background rejection at fixed signal efficiency](#5-background-rejection-at-fixed-signal-efficiency)
 6. [FPGA implementation](#6-fpga-implementation)
-7. [Open problems](#7-open-problems)
-8. [Reproducing every number](#8-reproducing-every-number)
-9. [Repository layout](#9-repository-layout)
-10. [Context and references](#10-context-and-references)
+7. [Reducing the lookup-table cost](#7-reducing-the-lookup-table-cost)
+8. [Open problems](#8-open-problems)
+9. [Reproducing every number](#9-reproducing-every-number)
+10. [Repository layout](#10-repository-layout)
+11. [Context and references](#11-context-and-references)
 
 ---
 
@@ -361,7 +367,14 @@ The model does not fit. Removing the normalization layers took it from 5.21 M to
 and removed their 2.10 M-LUT share, but the remaining overhang belongs to the binary dense
 layers themselves, which are 63 % of the budget. Everything the model is *not* spending on
 those layers — 1.45 M LUT — would already fit, so a fit is arithmetically reachable if the
-binary layers can be built more cheaply.
+binary layers can be built more cheaply. It also sets the size of the required win: a
+dense-directed remedy has to reach a factor 8.9 to close the gap on its own, so nothing below
+roughly an order of magnitude is worth pursuing. Section 7 measures one that is.
+
+Of the 2,458,704 LUT in binary weight layers, 2,419,913 belong to the ten per-token instances
+of the same thirteen constant matrices, and the rest to the per-jet head and the input casts.
+That distinction matters for what follows: the ten instances are the same matrix applied to
+different constituents.
 
 At the same operating point the other resources are comfortable: 1,764 of 12,288 DSP (14 %),
 1.92 M of 3.46 M FF (56 %), and 90 of 5,376 BRAM-18K (1.7 %).
@@ -373,10 +386,14 @@ because each one closes off a direction.
 
 **Distributed arithmetic makes it worse.** `Strategy=distributed_arithmetic` (da4ml 0.5.2)
 applied to all fifteen binary layers inflated the whole model from 3.91 M to 4.53 M LUT
-(+15.8 %) and multiplied flip-flops by 3.70, from 1.92 M to 7.10 M. The mechanism is
-structural rather than a tuning failure: the canonical signed-digit representation of a ±1
-weight is a single digit, so common-subexpression elimination across weights has nothing to
-share. Binary weights are the one case distributed arithmetic cannot help.
+(+15.8 %) and multiplied flip-flops by 3.70, from 1.92 M to 7.10 M. It also cost latency and
+DSPs, 218 to 615 cycles at the same interval and 1,764 to 2,212 blocks. The emission was
+bit-exact against the reference, so this is a resource result and not an accuracy one. The
+mechanism is structural rather than a tuning failure: the canonical signed-digit representation
+of a ±1 weight is a single digit, so common-subexpression elimination across weights has
+nothing to share. Section 7.1 measures that directly — on these matrices a pairwise search
+saves what it saves on random signs, and nothing more. Binary weights are the one case
+distributed arithmetic cannot help.
 
 **Global reuse folding is exhausted.** Raising the reuse factor from 8 to 10 moved the whole
 model from 12.04 M to 11.94 M LUT, and the binary dense layers from 2,077,082 to 2,077,382
@@ -405,7 +422,51 @@ DSP48 operand-width boundary, taking the whole model at full unroll from 33,696 
 blocks. Narrow emission is canonical
 (`whole_model_rf{1,8,16}_wide.xml.gz` against `whole_model_rf{1,8}.xml.gz`).
 
-### 6.6 Export fidelity
+### 6.6 Where this sits against published implementations
+
+The closest published system is a set of sub-microsecond transformers for this same dataset
+(arXiv:2510.24784), synthesized for an XCU250. Their numbers below are quoted from that paper's
+Table 1; the per-class AUCs are read from its Figure 2 and averaged here, since the paper
+reports no macro average.
+
+| System | Input | Weights | LUT | DSP | Latency | Accuracy |
+| --- | --- | --- | --- | --- | --- | --- |
+| Sub-µs transformers, most accurate configuration | 64 × 3 | learned bitwidth | 202 k | 0 | 78 ns | 79.8 %; per-class AUC 0.921 to 0.972 over the five classes |
+| Same paper, all fifteen DSP-free configurations (its transformers and the set-model baselines it synthesizes alongside them) | ≤ 64 × 3 | learned bitwidth | 47 k–279 k | 0 | 44–140 ns | 64.7–79.8 % |
+| This work, 19,201 parameters, interval 8 | 10 × 16 | hard {−1, +1} | 3.91 M | 1,764 | 0.47 µs | macro-OvR AUC 0.8902 |
+| This work, 19,201 parameters, interval 1 | 10 × 16 | hard {−1, +1} | 4.80 M | 14,112 | 0.36 µs | macro-OvR AUC 0.8902 |
+
+Three differences account for the gap, and none of them is a synthesis trick that was missed.
+
+**They train to a resource target and this work does not.** Every configuration in that paper is
+trained to a fixed budget of 350,000 EBOPs, which its authors describe as roughly one Super
+Logic Region of the target device, enforced during training by a controller on the
+regularization strength. This work trained for tagging efficiency and is retrofitting fit
+afterwards. Converting the measurement here into the proxy that budget is calibrated against,
+one lookup table per effective bit-operation plus 55 per DSP, the fully unrolled configuration
+comes to 5.58 M against their target of 350,000: a factor 16. That proxy holds only for fully
+unrolled designs, which is why the interval-1 row is the one converted.
+
+**Their accuracy is higher, and the inputs are not comparable.** Their per-class AUCs at 64
+constituents average about 0.95, against 0.9161 for full precision and 0.8902 for binary weights
+here. They use 64 constituents with 3 features each through single-head attention; this work
+uses 10 constituents with 16 features each through two blocks with four heads. Neither number
+transfers to the other's input, and the comparison is reported in both directions for that
+reason.
+
+**Soft and hard quantization are not the same constraint.** Their weights carry learned
+per-parameter bitwidths, which may fall to zero or stay multi-bit, and that is the regime in
+which distributed arithmetic delivers the lookup-table numbers above. A hard {−1, +1} constraint
+is the case where the same technique inverts, measured in Section 6.5 and explained in Section
+7.1. The remedy has to come from somewhere else.
+
+For a same-device reference point outside the transformer family, JEDI-linear (arXiv:2508.15468)
+reaches DSP-free inference on this dataset at 64 constituents with 16 features on a VU13P, at
+O(100 ns) and O(100 k) LUT, using mixed sub-3-bit weights with an extended distributed-arithmetic
+backend and a custom pipelining pass. Neither the device nor the input dimensionality is what
+stands in the way here.
+
+### 6.7 Export fidelity
 
 The correlation between the exported hardware model and the trained checkpoint is measured and
 stored per article rather than assumed. At 8 bits the norm-free flagship reaches 0.989 against
@@ -417,24 +478,172 @@ the earlier raw-feature operating point the exported hardware model scored 0.756
 held-out split against 0.7582 for the checkpoint it was exported from — a cost of about
 0.001 AUC, negligible in physics units at this scale (`bnjettag/r7/README.md`).
 
-## 7. Open problems
+## 7. Reducing the lookup-table cost
+
+Section 6.4 leaves one number outstanding: 3.91 M LUT against 1.728 M, with 63 % of it in the
+binary dense layers, and every configuration-level remedy measured and closed in Section 6.5.
+This section is what replaced them. It has two parts: a counting study on the exact matrices
+that were synthesized, which says where the headroom is and where it is not, and a synthesis
+experiment on one real layer, which measures whether the counting survives contact with the
+tool.
+
+### 7.1 Why the layers cost what they cost
+
+Fitting the measured per-instance cost of the fifteen layer configurations against the bit-adds
+of a naive per-output reduction tree, using each layer's real input and accumulator widths, gives
+
+    LUT = 0.923 × (bit-adds) + 3,412        R² = 0.987
+
+Roughly one lookup table per bit-add is the naive tree priced at face value. Nothing in the flow
+restructures it, and had the estimator been pricing block-level sharing already the slope would
+sit near 0.3. The threshold set before the fit ran required every per-layer residual under 15 %
+and the largest is 24 %, on the 5×32 output layer where the intercept dominates a layer of 4,888
+LUT; excluding it the largest is 11 %. Everything counted below is therefore a ranking and a
+first-order sizing, not a prediction, and the synthesis experiment is what turns it into a
+measurement.
+
+**There is no learned structure for a search to find.** On the deployed matrices, greedy
+two-term subexpression extraction, the class of sharing a distributed-arithmetic backend
+performs, saves 699 to 712 adds on the 32×32 attention projections. On twenty random `±1`
+matrices of the same shape it saves 705.6 ± 4.8. Real is null, to within the noise, and the same
+holds for the affine form. That is the mechanism behind Section 6.5's negative result stated
+positively: a `±1` weight has a one-digit signed-digit representation and the columns are
+uncorrelated by construction, so whatever a pairwise search finds here is generic collision.
+The paper behind that backend states the same failure mode for its own algorithm, that matrices
+whose columns are rarely correlated yield a trivial decomposition.
+
+The consequence is a change of strategy rather than of tool. Sharing on these matrices has to be
+*imposed*, through identities that hold for any `±1` matrix, instead of *discovered*. Two such
+identities and one schedule transform were counted (`bnjettag/results/adder-graph/`):
+
+- **The affine form.** Each output is ±(T − 2 Σ minority), where T is the input total, built once
+  and shared by every output row and by all three projections that read the same activations.
+  About a factor 2 in adds, independent of the matrix.
+- **Subset-sum sharing**, the Four-Russians decomposition. Partition the inputs into groups of k,
+  build the 2^(k−1) signed group sums once, and let each output row select one precomputed value
+  per group; because the matrix is a compile-time constant, that selection is wiring rather than
+  a multiplexer. A counted factor 2.85 to 3.19 at k = 4 on these layers, and depth-neutral,
+  since the group stage replaces two levels of the reduction tree.
+- **Token-axis folding**, which is not adder arithmetic at all but a schedule. Thirteen of the
+  fifteen weighted layers exist as ten identical instances applying the same constant matrix to
+  different constituents; only the two head layers see a whole jet. Reuse factor cannot fold that axis: it time-multiplexes weights into a
+  shared multiplier and so destroys the constancy the emission depends on, which is exactly why
+  Section 6.5 measured it as a no-op. Folding time-multiplexes activations through a shared
+  constant graph and preserves it.
+
+### 7.2 One layer, five emissions
+
+The counting was checked against the tool on one real layer, `bit_block_0_ffn_fc1`, 32 → 64,
+which exists as ten per-token instances costing 234,930 LUT inside the whole model. Five
+emissions were synthesized, each C-simulated against the reference implementation and required
+to be bit-exact before its resource numbers were accepted. The bands each arm was judged against
+were fixed before it ran.
+
+![Token folding](figures/fig10_token_folding.png)
+
+*Figure 10. Left: the five emissions of one 32→64 per-token layer, from the raw reports under
+`bnjettag/results/adder-graph/e1/`. Right: the measured whole model beside what the measured fold
+ratio projects, against the device budget. The right panel is a projection, not a synthesis.*
+
+| Arm | Emission | LUT | vs arm P | FF | DSP | Latency | II | Clock |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P | ten instances, as synthesized today | 270,382 | 1.00 | 89,459 | 0 | 8 cyc | 1 | 1.583 ns |
+| A2 | folded by two | 261,881 | 1.03 | 80,922 | 0 | 13 cyc | 14 | 1.583 ns |
+| B | subset-sum restructured, k = 4 | 130,512 | **2.07×** | 64,718 | 0 | 7 cyc | 1 | 1.575 ns |
+| A | folded by ten | 29,044 | **9.31×** | 11,597 | 0 | 20 cyc | 21 | 1.652 ns |
+| C | folded by ten and restructured | 15,057 | **17.96×** | 9,121 | 0 | 19 cyc | 20 | 1.652 ns |
+
+**Folding is the large effect.** Removing nine of the ten physical instances costs a factor 9.3,
+and one layer goes from 270,382 to 15,057 LUT, a factor 18.0, when the restructuring is composed
+onto the folded slice. The composition was predicted in advance and holds: arm C is 0.064 of the
+whole-model baseline where the product of the two measured mechanisms gives 0.060, inside the
+20 % agreement fixed beforehand. No arm used a DSP.
+
+**Restructuring realizes about two thirds of what it counts.** Arm B reaches 2.07× against a
+counted 3.07× in bit space. It also improves depth, 7 cycles against 8.
+
+**Folding by two fails, and the reason is the tool.** Arm A2 was a monotonicity control and it
+missed its band outright: Vitis unrolls a pipelined loop with a trip count of two, so the design
+duplicated hardware while still serializing. Fold factors have to be large enough to defeat
+automatic unrolling.
+
+**The control lands on the edge of its band and is treated as a miss.** Arm P reproduces the
+whole-model census to 1.151 against a ceiling of 1.15. The offset is accounted for: census
+instances run at reuse factor 8, about 8 % cheaper on this fabric than the standalone reuse-1
+emission, and the standalone project adds interface logic and the bias add. Every mechanism
+ratio above is therefore quoted against arm P, which is like-for-like, rather than against the
+census.
+
+**The throughput question is closed.** The folded arms first reported intervals of 21 and 20
+cycles against a budget of 11, which at the achieved clock is 33 to 35 ns and outside the 25 ns
+window. That figure was not the fold: the scheduler log shows the fold loop itself achieving one
+cycle per constituent, and the reported number was the standalone function's restart interval,
+latency plus one, because a bare top-level function cannot overlap invocations. With
+`#pragma HLS PIPELINE II=1 rewind` on the fold loop and nothing else changed, both folded arms
+schedule at an interval of 10 cycles, 16.5 ns at the achieved clock, for 0.1 % less area:
+29,029 LUT for arm A and 15,042 for arm C, both still bit-exact. The second report is stored
+beside the first as `csynth_v2_rewind.xml.gz`.
+
+### 7.3 What that projects, and what it does not show
+
+Carrying the measured fold through the module census of Section 6.4, with the multiplexer,
+control and buffer overheads counted:
+
+| Component | LUT |
+| --- | --- |
+| Folded per-token dense: one slice, ten-to-one input multiplexers, control | 257,947 |
+| Folded per-token glue at one tenth, with its multiplexers | 40,539 |
+| Unfolded: attention products, softmax, pooling, head, wrappers | 897,102 |
+| Top-level glue, kept in full | 218,825 |
+| **Projected whole model** | **1,414,413** |
+
+That is inside the device with about 18 % margin, at an interval of ten cycles against a budget
+of eleven; composing the restructuring onto the folded slice projects 1,283,364 LUT, about 26 %.
+It is the first configuration of this work projected to fit.
+
+What that sentence is not is a synthesis. The measured part is one layer; the whole-model number
+assumes that the multiplexer and control overheads are modeled correctly, that the per-token glue
+folds with the dense layers, that reuse inside the folded slice drops to one at the measured 8 %
+cost, and that the folded design still closes at or under 2.5 ns, where the 2.157 ns in hand is
+an estimate for the unfolded design. A general emitter for the whole per-token stack does not
+exist yet, and building it is the next piece of work.
+
+Two further limits belong here rather than in a footnote. The implemented-netlist anchor is
+missing: a post-synthesis run on arms P and C was part of the design and could not be completed,
+because the synthesis machine has no Vivado synthesis licence for this part. Every ratio in this
+section is therefore C-synthesis estimate against C-synthesis estimate, which is internally
+consistent but blind to carry-chain packing decided later in the flow, and that blindness cuts
+both ways. And folding does not touch the attention core: after it, 789,076 of the projected
+1,414,413 LUT, about 56 %, is the weightless activation-by-activation arithmetic of Section 6.2,
+which becomes the binding constraint.
+
+## 8. Open problems
 
 1. **Device fit.** 3.91 M LUT against 1.728 M available, 63 % of it in the binary dense
-   layers. Section 6.5 closes off reuse folding, distributed arithmetic, and streamed I/O. The
-   directions that remain measured-open are folding along the constituent axis rather than the
-   reuse axis, and moving the ±1 weights into block RAM.
-2. **Whether a 5-bit activation width softens the 6-to-4-bit cliff.** Untested; the ladder has
+   layers. Section 6.5 closes off reuse folding, distributed arithmetic, and streamed I/O.
+   Section 7 measures a factor 9.3 from token-axis folding on one layer and projects a fit for
+   the whole model, so what remains is engineering rather than search: a general folding
+   emitter for the per-token stack, and then the same measurement on the whole artifact.
+   Moving the ±1 weights into block RAM remains untested.
+2. **The attention floor.** Weight binarization cannot reach the activation-by-activation
+   products, and after folding they are the majority of the projected budget. Narrowing them
+   costs accuracy at the rate Section 4.2 measures, so this needs an architectural answer
+   rather than a precision one.
+3. **Whether a 5-bit activation width softens the 6-to-4-bit cliff.** Untested; the ladder has
    only ever been measured at 8, 6 and 4.
-3. **The input-size axis.** All results use the ten highest-pT constituents. How accuracy,
+4. **The input-size axis.** All results use the ten highest-pT constituents. How accuracy,
    latency and resources move as that count varies has been deferred by design, and the knob
    exists in the code.
-4. **The hardware cost of the pairwise attention bias.** The 45-pair feature formation of
+5. **The hardware cost of the pairwise attention bias.** The 45-pair feature formation of
    Section 4.4 has not been synthesized, so its accuracy gain currently has no price attached.
-5. **Seed count.** Three seeds per configuration is enough to separate the ladder steps and
+6. **An implemented-netlist anchor.** Every resource number in this repository is a
+   C-synthesis estimate. Place-and-route was not reachable on the available machine, so how
+   much of the binary adder fabric packs into carry chains is unmeasured.
+7. **Seed count.** Three seeds per configuration is enough to separate the ladder steps and
    the binary penalty, but not to resolve differences of a few tenths of a point, such as the
    pairwise-bias result.
 
-## 8. Reproducing every number
+## 9. Reproducing every number
 
 No number here needs to be taken on trust. Every accuracy figure comes from a stored array of
 per-jet scores, and every hardware figure from a stored synthesis report.
@@ -465,6 +674,21 @@ gunzip -c bnjettag/r7/results/csynth/whole_model_rf8_stdnn.xml.gz > /tmp/report.
 python bnjettag/code/hls/parse_census.py /tmp/report.xml DSP     # or LUT
 ```
 
+The same parser reads the single-layer reports of Section 7, which are stored the same way, one
+directory per emission:
+
+```bash
+gunzip -c bnjettag/results/adder-graph/e1/c/prj_c/sol1/syn/report/csynth_v2_rewind.xml.gz > /tmp/c.xml
+python bnjettag/code/hls/parse_census.py /tmp/c.xml LUT
+```
+
+The counting study of Section 7.1 rebuilds from the weight files it ships with, and prints its
+per-layer table and the fit it is calibrated against:
+
+```bash
+python bnjettag/code/analysis/adder_graph_study.py    # rewrites counting_results.json
+```
+
 Every figure in this document:
 
 ```bash
@@ -472,18 +696,19 @@ pip install numpy scikit-learn matplotlib
 python figures/make_figures.py
 ```
 
-The script reads the same arrays and reports, writes the nine figures, and writes
+The script reads the same arrays and reports, writes the ten figures, and writes
 `figures/NUMBERS.txt` listing every value that reached a figure, so a plot can be audited
 without rerunning it.
 
-## 9. Repository layout
+## 10. Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `figures/` | The nine figures of this document, the script that generates them from the stored data, and the value log it emits. |
+| `figures/` | The ten figures of this document, the script that generates them from the stored data, and the value log it emits. |
 | `bnjettag/code/hgq2/` | The current pipeline: quantization-aware training, conversion to hls4ml, the custom SubLN layer and its Vitis templates, verification gates, synthesis drivers, run configurations. |
 | `bnjettag/code/training/` | The earlier QKeras trainer and ROC tooling. |
 | `bnjettag/code/hls/` | Synthesis drivers and the instance-tree report parser used for every census in Section 6. |
+| `bnjettag/code/analysis/` | The counting study of Section 7.1: what each restructuring of a ±1 matrix would save against the adder tree the tool emits. |
 | `bnjettag/code/jobs/` | 182 Kubernetes job specifications — every training and synthesis run that produced the results here. |
 | `bnjettag/r7/roc-results/` | Per-jet score arrays for the raw-feature campaign, with the verified AUC tables. |
 | `bnjettag/r7/roc-results/r7b/` | The 5,345-parameter column, retrained at its own learning rate. |
@@ -495,13 +720,14 @@ without rerunning it.
 | `bnjettag/r7/results/convert/` | Conversion and C-simulation evidence per emission: precision maps, fidelity gates, layer inventories. |
 | `bnjettag/r7/models/` | Four trained checkpoints, including the norm-free flagship and the standardization constants it expects. |
 | `bnjettag/results/hgq2/constraints_map.md` | What converts cleanly through HGQ2 and hls4ml, what needs a custom layer, and where DSPs hide. Established by execution, not by reading documentation. |
+| `bnjettag/results/adder-graph/` | Section 7: the counting study's full output, the weight files and widths it reads, and the five single-layer emissions with their raw reports. |
 | `infrastructure/` | Cluster and synthesis-machine setup. |
 
 Not included: the training dataset (public, Zenodo record 3602260), generated HLS project
 bundles and firmware trees (regenerable from the checkpoints and configurations in minutes),
 and vendored Xilinx headers.
 
-## 10. Context and references
+## 11. Context and references
 
 - **BitNet**, arXiv:2310.11453 — the 1-bit transformer training method adapted here; the
   ternary follow-up is arXiv:2402.17764 and the low-bit-activation study arXiv:2411.04965.
@@ -509,8 +735,12 @@ and vendored Xilinx headers.
 - **HLS4ML LHC Jet dataset**, arXiv:1804.06913 and arXiv:1908.05318, Zenodo 3602260 — the
   public benchmark used throughout.
 - **Sub-microsecond transformers for jet tagging on FPGAs**, arXiv:2510.24784 — the closest
-  published system: near-full-precision transformers through hls4ml into Level-1 latency. The
+  published system: near-full-precision transformers through hls4ml into Level-1 latency, all
+  trained to a fixed 350,000-EBOPs budget. The source of the comparison in Section 6.6. The
   differentiator of this work is the one-bit weight core and its DSP-free mapping.
+- **JEDI-linear**, arXiv:2508.15468 — DSP-free trigger inference on the same dataset and the same
+  device as this work, with mixed sub-3-bit weights and a distributed-arithmetic backend extended
+  by a custom pipelining pass.
 - **Ultrafast jet classification at the HL-LHC**, arXiv:2402.01876 — a synthesized tagger in
   the same parameter class (20 k–27 k) on the same device, at 2.1 % DSP and 7–9 % LUT.
 - **BitParT**, arXiv:2508.07431 — the only published attempt to binarize part of a
@@ -519,6 +749,12 @@ and vendored Xilinx headers.
   behind unchanged AUC.
 - **Particle Transformer**, arXiv:2202.03772 — the source of the pairwise-invariant attention
   bias of Section 4.4.
-- **da4ml**, arXiv:2507.04535 — the distributed-arithmetic backend evaluated in Section 6.5.
+- **da4ml**, arXiv:2507.04535 — the distributed-arithmetic backend evaluated in Section 6.5, and
+  the source of the correlated-columns condition its own algorithm needs, which Section 7.1
+  measures as absent on binary matrices.
+- **Unrolling ternary neural networks**, arXiv:1909.04509 — the nearest prior art for compiling a
+  low-precision network into shared adder logic rather than multipliers. It is ternary rather than
+  binary, convolutional, and three orders of magnitude away from trigger latency, but it is the
+  demonstration that the genre works.
 - **EBOPs / HGQ**, arXiv:2405.00645 — the synthesis-free hardware cost metric used during
   design.

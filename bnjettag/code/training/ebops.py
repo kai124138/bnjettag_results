@@ -59,7 +59,7 @@ Provenance of the layer profile (read qkerasModel.py alongside this):
   * head: head_fc1 BitLinear(D) (bias) on the pooled vector (ONE token), ReLU,
     head_fc2 BitLinear(N_CLASSES) (bias) — 1 logit in era 1, 5 logits in era 2.
 
-Two dataset eras (RESEARCH.md §4): era 1 = private 2-class (N_FEAT=14, 1-logit
+Two dataset eras: era 1 = private 2-class (N_FEAT=14, 1-logit
 head); era 2 = public HLS4ML LHC Jet 5-class (N_FEAT=16, 5-logit head). Default
 is era 2 (current). Cross-check: profile(...).params reproduces the verified
 CPU-preflight counts exactly — era 1: tiny 26,529 / small 153,793 / medium
@@ -83,7 +83,7 @@ from typing import Dict, List, Tuple
 # ─────────────────────────────────────────────────────────────────────────────
 # Fixed data-pipeline constants (must match qkerasModel.py)
 # ─────────────────────────────────────────────────────────────────────────────
-# Two dataset eras (RESEARCH.md §4) — the model I/O differs between them:
+# Two dataset eras — the model I/O differs between them:
 #   era 1 (frozen, runs ≤ round-4): private 2-class set — 14 features, 1-logit head
 #   era 2 (current, round-5+): public HLS4ML LHC Jet — 16 features, 5-class head
 # N_PART = 10 in both (top-10 constituents by pT; GAP pool, no CLS ⇒ seq len 10).

@@ -58,3 +58,14 @@ fig05  q: rejection 23.2 -> 23.5 (+1.1%),  AUC 0.8836 -> 0.8850
 fig05  W: rejection 18.2 -> 20.4 (+12.6%),  AUC 0.8830 -> 0.8883
 fig05  Z: rejection 22.1 -> 25.6 (+16.0%),  AUC 0.8712 -> 0.8760
 fig05  t: rejection 67.7 -> 71.5 (+5.6%),  AUC 0.9247 -> 0.9230
+fig10  arm P  LUT  270,382  FF  89,459  DSP 0  latency   8 cyc  II   1  clock 1.583 ns  (1.00x arm P)
+fig10  arm A2 LUT  261,881  FF  80,922  DSP 0  latency  13 cyc  II  14  clock 1.583 ns  (1.03x arm P)
+fig10  arm B  LUT  130,512  FF  64,718  DSP 0  latency   7 cyc  II   1  clock 1.575 ns  (2.07x arm P)
+fig10  arm A  LUT   29,044  FF  11,597  DSP 0  latency  20 cyc  II  21  clock 1.652 ns  (9.31x arm P)
+fig10  arm A  rewind: LUT   29,029 (-0.1%)  II 21 -> 10  = 16.5 ns per jet
+fig10  arm C  LUT   15,057  FF   9,121  DSP 0  latency  19 cyc  II  20  clock 1.652 ns  (17.96x arm P)
+fig10  arm C  rewind: LUT   15,042 (-0.1%)  II 20 -> 10  = 16.5 ns per jet
+fig10  layer baseline inside the whole model: 234,930 LUT (ten instances of 23,493)
+fig10  measured as synthesized                3,910,515 LUT  (2.26 of device)
+fig10  projected folded by ten                1,414,413 LUT  (0.82 of device)
+fig10  projected folded and restructured      1,283,363 LUT  (0.74 of device)

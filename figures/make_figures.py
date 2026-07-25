@@ -34,6 +34,7 @@ OUT = Path(__file__).resolve().parent
 NPZ_R7 = ROOT / "bnjettag/r7/roc-results"
 NPZ_R10 = ROOT / "bnjettag/roc-results/r10"
 CSYNTH = ROOT / "bnjettag/r7/results/csynth"
+ADDER = ROOT / "bnjettag/results/adder-graph"
 
 CLASSES = ["g", "q", "W", "Z", "t"]
 VU13P = {"LUT": 1_728_000, "FF": 3_456_000, "DSP": 12_288, "BRAM_18K": 5_376}
@@ -102,11 +103,23 @@ def rejection(y, s, eps):
 
 
 def csynth(name):
-    """Totals and timing from one raw Vitis HLS report."""
+    """Totals and timing from one whole-model report under bnjettag/r7/results/csynth."""
     path = CSYNTH / f"{name}.xml.gz"
-    opener = gzip.open if path.exists() else open
     if not path.exists():
         path = CSYNTH / f"{name}.xml"
+    return report(path)
+
+
+def e1(arm, version="v1"):
+    """Totals and timing from one Experiment-1 arm; version 'v2' is the rewind rerun."""
+    fn = "csynth.xml.gz" if version == "v1" else "csynth_v2_rewind.xml.gz"
+    return report(ADDER / f"e1/{arm}/prj_{arm}/sol1/syn/report/{fn}")
+
+
+def report(path):
+    """Totals and timing from any raw Vitis HLS report, gzipped or plain."""
+    path = Path(path)
+    opener = gzip.open if path.suffix == ".gz" else open
     with opener(path, "rb") as fh:
         root = ET.parse(fh).getroot()
     res = root.find("AreaEstimates/Resources")
@@ -545,6 +558,108 @@ def fig_lut_census():
     plt.close(fig)
 
 
+# --------------------------------------------- Fig 10 -- token-axis folding
+def fig_token_folding():
+    """Experiment 1 on one real layer, and what it projects for the whole model."""
+    import json
+
+    # --- left: the measured arms, one 32 -> 64 per-token layer
+    arms = [("P\nten instances,\nas synthesized", "p", None),
+            ("A2\nfolded by two", "a2", None),
+            ("B\nsubset-sum\nrestructuring", "b", None),
+            ("A\nfolded by ten", "a", "v2"),
+            ("C\nfolded and\nrestructured", "c", "v2")]
+    base = e1("p")["LUT"]
+    census_ten = 234_930          # the same layer inside the whole model, RF 8, x10
+    lut, ratio, labels = [], [], []
+    for label, arm, v2 in arms:
+        r1 = e1(arm)
+        lut.append(r1["LUT"])
+        ratio.append(base / r1["LUT"])
+        labels.append(label)
+        line = (f"fig10  arm {arm.upper():2s} LUT {r1['LUT']:8,d}  FF {r1['FF']:7,d}  "
+                f"DSP {r1['DSP']}  latency {r1['lat']:3d} cyc  II {r1['II']:3d}  "
+                f"clock {r1['clk']:.3f} ns  ({base / r1['LUT']:.2f}x arm P)")
+        if v2:
+            r2 = e1(arm, "v2")
+            line += (f"\nfig10  arm {arm.upper():2s} rewind: LUT {r2['LUT']:8,d} "
+                     f"({100 * (r2['LUT'] - r1['LUT']) / r1['LUT']:+.1f}%)  II {r1['II']} -> "
+                     f"{r2['II']}  = {r2['II'] * r2['clk']:.1f} ns per jet")
+        note(line)
+    note(f"fig10  layer baseline inside the whole model: {census_ten:,} LUT "
+         f"(ten instances of 23,493)")
+
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(11.4, 4.5),
+                                  gridspec_kw={"width_ratios": [1.15, 1]})
+    cols = [C_GREY, C_GREY, C_W8A8, C_BINNN, "#14532d"]
+    x = np.arange(len(arms))
+    ax.bar(x, np.array(lut) / 1e3, 0.62, color=cols, edgecolor="white", linewidth=0.6)
+    for i, (v, r) in enumerate(zip(lut, ratio)):
+        ax.text(i, v / 1e3 + 7, f"{v / 1e3:.0f}k" + ("" if i == 0 else f"\n{r:.1f}$\\times$"),
+                ha="center", va="bottom", fontsize=8.5,
+                color="#222222" if i < 3 else C_BINNN)
+    ax.axhline(census_ten / 1e3, color="#444444", linestyle="--", linewidth=1.1)
+    ax.text(len(arms) - 0.45, census_ten / 1e3 + 5,
+            "same layer in the whole model", ha="right", fontsize=8, color="#444444")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=8)
+    ax.set_ylabel("lookup tables (thousands)")
+    ax.set_ylim(0, 320)
+    ax.set_title("One 32$\\rightarrow$64 per-token layer, five emissions\n"
+                 "all five bit-exact in C-simulation, 0 DSP", fontsize=10.5)
+    ax.grid(axis="x", visible=False)
+
+    # --- right: measured whole model against the folded projection
+    meas = csynth("whole_model_rf8_stdnn")
+    f = json.loads((ADDER / "counting_results.json").read_text())
+    fold, comp = f["fold"], f["fold_restruct"]
+    cats = fold["census_categories"]
+    measured = [cats["dense_per_token"], cats["glue_other"],
+                cats["einsum_actxact"] + cats["softmax"] + cats["pooling"]
+                + cats["dense_head"] + cats["einsum_dense_wrap"], cats["top_glue"]]
+    assert sum(measured) == meas["LUT"], "census does not close"
+    unfolded_rest = fold["unfolded"] - cats["top_glue"]
+    projected = [fold["dense_folded"], fold["glue_folded"], unfolded_rest, cats["top_glue"]]
+    # restructured slice, keeping the fold's own multiplexer and control overhead
+    dense_overhead = fold["dense_folded"] - fold["per_token_slice_lut"]
+    restruct = [comp["slice_lut_best"] + dense_overhead, fold["glue_folded"],
+                unfolded_rest, cats["top_glue"]]
+    assert abs(sum(projected) - fold["total"]) < 2, "projection does not close"
+    assert abs(sum(restruct) - comp["fold_restruct_total"]) < 2, "composition does not close"
+
+    stacks = [("measured\nas synthesized", measured),
+              ("projected\nfolded by ten", projected),
+              ("projected\nfolded and\nrestructured", restruct)]
+    parts = [("per-token binary dense", C_BINNN), ("per-token glue", "#b0b0b0"),
+             ("attention, softmax, pooling, head", C_BIN), ("top-level glue", "#d8d8d8")]
+    y = np.arange(len(stacks))[::-1]
+    left = np.zeros(len(stacks))
+    for j, (name, colour) in enumerate(parts):
+        vals = np.array([s[1][j] for s in stacks], dtype=float)
+        ax2.barh(y, vals / 1e6, 0.5, left=left / 1e6, color=colour, label=name,
+                 edgecolor="white", linewidth=0.6)
+        left += vals
+    for yy, (label, vals) in zip(y, stacks):
+        tot = sum(vals)
+        ax2.text(tot / 1e6 + 0.06, yy, f"{tot / 1e6:.2f}M", va="center", fontsize=8.5)
+        note(f"fig10  {label.replace(chr(10), ' '):38s} {tot:9,d} LUT  "
+             f"({tot / VU13P['LUT']:.2f} of device)")
+    ax2.axvline(VU13P["LUT"] / 1e6, color="#444444", linestyle="--", linewidth=1.2)
+    ax2.text(VU13P["LUT"] / 1e6 + 0.05, -0.72, f"VU13P: {VU13P['LUT'] / 1e6:.3f}M",
+             ha="left", va="center", fontsize=8.5)
+    ax2.set_yticks(y)
+    ax2.set_yticklabels([s[0] for s in stacks], fontsize=8.5)
+    ax2.set_ylim(-1.15, len(stacks) - 0.4)
+    ax2.set_xlim(0, 4.5)
+    ax2.set_xlabel("lookup tables (millions)")
+    ax2.set_title("Whole model: measured, and projected from the measured\n"
+                  "fold ratio (a projection, not a synthesis)", fontsize=10.5)
+    ax2.legend(fontsize=7.6, ncol=2, loc="lower right", bbox_to_anchor=(1.0, -0.03))
+    ax2.grid(axis="y", visible=False)
+    fig.savefig(OUT / "fig10_token_folding.png")
+    plt.close(fig)
+
+
 # ------------------------------------------------- Fig 8 -- the design space
 def fig_operating_points():
     # (label, report, colour, marker, label offset left panel, offset right panel)
@@ -655,6 +770,7 @@ if __name__ == "__main__":
     fig_lut_census()
     fig_operating_points()
     fig_pair_bias()
+    fig_token_folding()
     (OUT / "NUMBERS.txt").write_text("\n".join(LOG) + "\n")
     note("")
     note(f"wrote {len(sorted(OUT.glob('fig*.png')))} figures and NUMBERS.txt")
