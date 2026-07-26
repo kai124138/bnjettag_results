@@ -715,6 +715,7 @@ without rerunning it.
 | `bnjettag/r7/roc-results/r8/` | The standardized-input campaign — the arrays behind Sections 4.1 and 5. |
 | `bnjettag/r7/roc-results/extension/` | Seed extensions, the learning-rate probe, and the normalization ablation. |
 | `bnjettag/roc-results/r10/` | Arrays for the pairwise attention bias of Section 4.4. |
+| `bnjettag/roc-results/r11/` | The capacity ladder: 54 arrays covering d_model 32 to 128 (19,201 to 285,121 parameters), four arms per scale, three seeds each, with the verified AUC and rejection tables. Binary against a matched norm-free 8-bit baseline at every scale. |
 | `bnjettag/r7/results/csynth/` | Sixteen raw Vitis C-synthesis reports, gzipped. Every hardware number traces here. |
 | `bnjettag/r7/results/` | The operating-point study, the LUT census, and the activation-ladder table. |
 | `bnjettag/r7/results/convert/` | Conversion and C-simulation evidence per emission: precision maps, fidelity gates, layer inventories. |
