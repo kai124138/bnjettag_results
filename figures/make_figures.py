@@ -741,7 +741,7 @@ def fig_pair_bias():
     ax.set_xticks(x)
     ax.set_xticklabels(CLASSES)
     ax.set_ylabel(f"background rejection at $\\varepsilon_S$ = {eps}")
-    ax.set_title("Per-class rejection, 3-seed mean", fontsize=10.5)
+    ax.set_title("Per-class rejection, seed mean (6 seeds vs 3)", fontsize=10.5)
     ax.legend(fontsize=8.2)
 
     ax2.bar(x - 0.19, b_auc, 0.36, color=C_BINNN)
@@ -750,8 +750,8 @@ def fig_pair_bias():
     ax2.set_xticklabels(CLASSES)
     ax2.set_ylim(0.80, 0.95)
     ax2.set_ylabel("one-vs-rest AUC")
-    ax2.set_title("Per-class AUC, 3-seed mean", fontsize=10.5)
-    fig.suptitle("A shared pairwise-invariant bias on the attention logits: the gain lands on W and Z",
+    ax2.set_title("Per-class AUC, seed mean (6 seeds vs 3)", fontsize=10.5)
+    fig.suptitle("A shared pairwise-invariant bias on the attention logits: what gain there is sits on W and Z (n.s. at 6 seeds)",
                  fontsize=11, y=1.02)
     fig.savefig(OUT / "fig05_pairwise_bias.png")
     plt.close(fig)

@@ -28,9 +28,12 @@ activation widths, all fifteen binary weight layers consume **zero DSP blocks**;
 multiplier that remains belongs to the weightless activation×activation products inside
 attention, to the softmax tables, or to pooling. The deployable configuration meets the
 Level-1 throughput condition (a new jet every 8 cycles ≈ 17.3 ns, inside the 25 ns window) at
-an end-to-end latency of 0.47 µs, and runs to 0.36 µs when fully unrolled. The cost of the
-binary constraint under matched training and conditioned inputs is 2.6 AUC points, which in
-the trigger's own operating metric is a 35 % loss of background rejection. The model does not
+an end-to-end latency of 0.47 µs, and runs to 0.36 µs when fully unrolled. Against a matched
+baseline — the identical norm-free architecture at 8-bit weights, trained on the same recipe —
+the binary constraint costs 3.3 AUC points (0.8902 ± 0.0067 against 0.9231 ± 0.0009), and in
+the trigger's own operating metric the binary model retains 52 % of the matched baseline's
+background rejection. Against the normed full-precision reference the gap is 2.6 points, but
+that comparison crosses the normalization axis and understates the cost. The model does not
 yet fit a single VU13P: it needs 3.91 M LUTs against 1.728 M available, and that gap is the
 open problem. On the one layer where a remedy has been synthesized, time-multiplexing a single
 constant-weight datapath over the ten constituents instead of instantiating it ten times costs
@@ -171,11 +174,19 @@ error bars are the sample standard deviation.*
 | --- | --- | --- |
 | FP32 | 0.8255 ± 0.0008 | 0.9161 ± 0.0009 |
 | W8A8 | 0.8203 ± 0.0019 | 0.9151 ± 0.0009 |
+| W8A8, no normalization layers | not run | 0.9231 ± 0.0009 |
 | W1A8, with SubLN normalization | 0.7500 ± 0.0083 | 0.8763 ± 0.0035 |
 | W1A8, no normalization layers | 0.6569 ± 0.0099 | **0.8902 ± 0.0067** |
 
-The fair cost of binarizing every weight at this scale is **2.6 AUC points**, not 7.6. The
-raw-feature measurement remains valid as measured, but its interpretation was confounded:
+Under this conditioning the binary constraint costs 2.6 AUC points against the normed FP32
+baseline, not 7.6. That comparison still crosses the normalization axis, however: the binary
+arm is norm-free and the FP32 arm is not. The like-for-like control — the identical norm-free
+architecture at 8-bit weights, byte-identical recipe, three seeds — reaches
+**0.9231 ± 0.0009** (`bnjettag/roc-results/r11/roc_auc_r11_control.md`), so the cost of
+binarization proper, everything else matched, is **3.3 AUC points**. Removing the norms helps
+both precisions by a comparable amount, which is why the cross-axis comparison flatters the
+binary model. The raw-feature measurement remains valid as measured, but its interpretation
+was confounded:
 8-bit input grids cannot resolve features whose per-feature standard deviation reaches ~118,
 and no in-fabric normalization recovers information that input quantization has already
 discarded.
@@ -233,19 +244,28 @@ bits-for-parameters trade rather than a failure mode.
 One architectural extension has been measured. A shared bias on the pre-softmax attention
 logits, built from three Lorentz-invariant functions of each constituent pair (ΔR², k_T², m²)
 in the manner of the Particle Transformer, adds 84 parameters to the 19,201-parameter
-norm-free recipe and leaves everything else byte-identical. Held-out AUC moves from
-0.8902 ± 0.0067 to 0.8918 ± 0.0026, and background rejection improves at every working point
-examined: +7.8 % at ε_S = 0.3, +5.9 % at 0.5, +3.7 % at 0.7.
+norm-free recipe and leaves everything else byte-identical. Over six seeds, held-out AUC is
+**0.8907 ± 0.0050** against the baseline's 0.8902 ± 0.0067 — statistically flat.
+
+An interim three-seed reading of this experiment had looked better: 0.8918 ± 0.0026, with
+rejection up 3.7–7.8 % across working points and a seed spread tighter by a factor of
+roughly 2.5. Doubling the seed count removed most of it. The AUC difference vanished, and the
+apparent tightening of the seed spread weakened with it (± 0.0026 at three seeds, ± 0.0050 at
+six). What survives is a small rejection gain that is uniform in sign across working points —
+**+4.8 % at ε_S = 0.5** (32.5 ± 2.0 against 31.0 ± 2.0) — and remains concentrated on W and Z,
+but a Welch test on the macro rejection at ε_S = 0.5 gives p = 0.43, so it is not
+statistically established at this seed count. The per-seed values are in
+`bnjettag/roc-results/r10/roc_auc_r10.md` beside the six arrays.
 
 ![Pairwise attention bias](figures/fig05_pairwise_bias.png)
 
-*Figure 5. Per-class effect of the pairwise-invariant attention bias, three seeds each. The
-gain is concentrated on W and Z, the two weakest classes of the baseline.*
+*Figure 5. Per-class effect of the pairwise-invariant attention bias: six seeds for the biased
+model, three for the baseline. What gain there is sits on W and Z, the two weakest classes of
+the baseline, but it does not reach significance.*
 
-The magnitude is small against three seeds, but the sign is uniform across working points and
-the seed spread tightens by a factor of roughly 2.5–3 in both metrics. The accuracy case is
-established; the hardware case is not, because the pair-feature formation for the 45
-constituent pairs has not been synthesized.
+Neither the accuracy case nor the hardware case is established: the AUC effect did not
+survive the seed extension, and the pair-feature formation for the 45 constituent pairs has
+not been synthesized.
 
 ## 5. Background rejection at fixed signal efficiency
 
@@ -256,7 +276,7 @@ same stored arrays give the trigger-native quantity directly.
 
 *Figure 6. Background rejection against signal efficiency for the deployable-scale
 configurations, macro-averaged over the five classes. Bands are the standard deviation over
-three seeds.*
+seeds — three per configuration, six for the pairwise-bias arm.*
 
 | Configuration (19,201 parameters, standardized inputs) | ε_S = 0.5 | ε_S = 0.7 |
 | --- | --- | --- |
@@ -264,12 +284,16 @@ three seeds.*
 | W8A8 | 46.8 ± 0.7 (98 % of FP32) | 16.4 ± 0.2 (98 %) |
 | W1A8, no normalization | 31.0 ± 2.0 (65 %) | 11.5 ± 0.6 (69 %) |
 | W1A8, with SubLN | 24.6 ± 1.6 (52 %) | 9.7 ± 0.4 (58 %) |
-| W1A8, no normalization, + pairwise bias | 32.8 ± 0.8 (69 %) | 11.9 ± 0.2 (71 %) |
+| W1A8, no normalization, + pairwise bias (6 seeds) | 32.5 ± 2.0 (68 %) | 11.9 ± 0.6 (71 %) |
 
-The 2.6-point AUC gap of Section 4.1 corresponds to a **35 % loss of background rejection**.
-Eight-bit quantization tracks full precision in this metric as well. Reporting AUC alone would
-understate the price of the binary constraint, which is why both metrics accompany every
-headline number in this document.
+Against the matched norm-free 8-bit control of Section 4.1, which reaches 60.2 ± 1.2 at
+ε_S = 0.5 (`bnjettag/roc-results/r11/roc_auc_r11_control.md`), the 3.3-point AUC cost of
+binarization corresponds to retaining **51.5 % of the matched baseline's background
+rejection** — a factor 1.94 loss. Against the normed FP32 baseline in the table above, a
+comparison that crosses the normalization axis, the loss is 35 %. Eight-bit quantization
+tracks full precision in this metric as well. Reporting AUC alone would understate the price
+of the binary constraint, which is why both metrics accompany every headline number in this
+document.
 
 ## 6. FPGA implementation
 
@@ -388,6 +412,18 @@ different constituents.
 At the same operating point the other resources are comfortable: 1,764 of 12,288 DSP (14 %),
 1.92 M of 3.46 M FF (56 %), and 90 of 5,376 BRAM-18K (1.7 %).
 
+**Note added 2026-08-01.** The 3.91 M figure, like every resource number in this section, is a
+C-synthesis estimate. A single whole-model Vivado RTL synthesis of the same build —
+out-of-context, not placed or routed, and on a smaller part of the same fabric generation than
+the VU13P, the only one licensed on the available machine — measured **1,787,637 CLB LUTs**:
+C-synthesis over-estimates the LUT cost of these structures by roughly a factor 2.2. At the
+same time the worst negative slack at the 2.5 ns constraint implies an achievable clock near
+3.6 ns at this stage of the flow. The lookup-table overhang is therefore smaller than the
+csynth ratio above suggests, and the binding risk shifts toward timing closure rather than
+area. Synthesis-estimate and csynth-estimate numbers are not directly comparable, which is why
+the tables of this section remain in csynth units; the raw utilization report is stored at
+`bnjettag/results/adder-graph/eb2/util_wholemodel.rpt`.
+
 ### 6.5 Measured negative results
 
 Five candidate remedies were tested and did not work. Each is recorded with its evidence,
@@ -451,14 +487,14 @@ Three differences account for the gap, and none of them is a synthesis trick tha
 trained to a fixed budget of 350,000 EBOPs, which its authors describe as roughly one Super
 Logic Region of the target device, enforced during training by a controller on the
 regularization strength. This work trained for tagging efficiency and is retrofitting fit
-afterwards. Converting the measurement here into the proxy that budget is calibrated against,
-one lookup table per effective bit-operation plus 55 per DSP, the fully unrolled configuration
-comes to 5.58 M against their target of 350,000: a factor 16. That proxy holds only for fully
-unrolled designs, which is why the interval-1 row is the one converted.
+afterwards. The same metric measured here is 6,802,571 EBOPs
+(`bnjettag/r7/results/convert/r8stdnn-s2/rf8/ebops.json`), roughly a factor 19 above their
+350,000 budget. No conversion of EBOPs into lookup tables is attempted; the calibration such a
+conversion needs does not hold across the two design styles.
 
 **Their accuracy is higher, and the inputs are not comparable.** Their per-class AUCs at 64
-constituents average about 0.95, against 0.9161 for full precision and 0.8902 for binary weights
-here. They use 64 constituents with 3 features each through single-head attention; this work
+constituents average about 0.95, against 0.9231 for the matched norm-free 8-bit baseline,
+0.9161 for normed full precision, and 0.8902 for binary weights here. They use 64 constituents with 3 features each through single-head attention; this work
 uses 10 constituents with 16 features each through two blocks with four heads. Neither number
 transfers to the other's input, and the comparison is reported in both directions for that
 reason.
@@ -622,9 +658,9 @@ missing: a post-synthesis run on arms P and C was part of the design and could n
 because the synthesis machine has no Vivado synthesis licence for this part. Every ratio in this
 section is therefore C-synthesis estimate against C-synthesis estimate, which is internally
 consistent but blind to carry-chain packing decided later in the flow, and that blindness cuts
-both ways. And folding does not touch the attention core: after it, 789,076 of the projected
-1,414,413 LUT, about 56 %, is the weightless activation-by-activation arithmetic of Section 6.2,
-which becomes the binding constraint.
+both ways. And the projection folds only the per-token dense stack: how the attention core,
+the glue and the folded slices compose in a single design — and therefore which term of the
+projected budget binds after folding — is unmeasured.
 
 ## 8. Open problems
 
@@ -635,9 +671,9 @@ which becomes the binding constraint.
    emitter for the per-token stack, and then the same measurement on the whole artifact.
    Moving the ±1 weights into block RAM remains untested.
 2. **The attention floor.** Weight binarization cannot reach the activation-by-activation
-   products, and after folding they are the majority of the projected budget. Narrowing them
-   costs accuracy at the rate Section 4.2 measures, so this needs an architectural answer
-   rather than a precision one.
+   products inside attention, and their share of a folded whole model is unmeasured. Narrowing
+   them costs accuracy at the rate Section 4.2 measures, so if they turn out to bind, the
+   answer is architectural rather than a precision one.
 3. **Whether a 5-bit activation width softens the 6-to-4-bit cliff.** Untested; the ladder has
    only ever been measured at 8, 6 and 4.
 4. **The input-size axis.** All results use the ten highest-pT constituents. How accuracy,
@@ -649,8 +685,8 @@ which becomes the binding constraint.
    C-synthesis estimate. Place-and-route was not reachable on the available machine, so how
    much of the binary adder fabric packs into carry chains is unmeasured.
 7. **Seed count.** Three seeds per configuration is enough to separate the ladder steps and
-   the binary penalty, but not to resolve differences of a few tenths of a point, such as the
-   pairwise-bias result.
+   the binary penalty, but not to resolve differences of a few tenths of a point: the
+   pairwise-bias result of Section 4.4 stayed unresolved even at six seeds.
 
 ## 9. Reproducing every number
 

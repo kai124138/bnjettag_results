@@ -31,8 +31,8 @@ fig06  W1A8, norm-free                  eps=0.5:   31.0 +- 2.0
 fig06  W1A8, norm-free                  eps=0.7:   11.5 +- 0.6
 fig06  W1A8, SubLN                      eps=0.5:   24.6 +- 1.6
 fig06  W1A8, SubLN                      eps=0.7:    9.7 +- 0.4
-fig06  W1A8, norm-free + pairwise bias  eps=0.5:   32.8 +- 0.8
-fig06  W1A8, norm-free + pairwise bias  eps=0.7:   11.9 +- 0.2
+fig06  W1A8, norm-free + pairwise bias  eps=0.5:   32.5 +- 2.0
+fig06  W1A8, norm-free + pairwise bias  eps=0.7:   11.9 +- 0.6
 fig07  whole_model_rf1              DSP total 33,696  SubLN normalization=19584  attention act x act=12800  softmax=800  pooling=512
 fig07  whole_model_rf8_narrow       DSP total  6,900  SubLN normalization=5136  attention act x act=1600  softmax=100  pooling=64
 fig07  whole_model_rf1_stdnn        DSP total 14,112  attention act x act=12800  softmax=800  pooling=512
@@ -53,11 +53,11 @@ fig08  A8 norm-free, RF 1             14,112 DSP   4,804,714 LUT   167 cyc  II= 
 fig08  A8 norm-free, RF 8              1,764 DSP   3,910,515 LUT   218 cyc  II= 8  2.157 ns  -> 0.470 us, 17.3 ns/jet
 fig08  A6, RF 8                        1,748 DSP  11,468,929 LUT   561 cyc  II= 8  3.103 ns  -> 1.741 us, 24.8 ns/jet
 fig08  A4, RF 8                          948 DSP  11,038,122 LUT   557 cyc  II= 8  3.103 ns  -> 1.728 us, 24.8 ns/jet
-fig05  g: rejection 23.9 -> 23.2 (-2.9%),  AUC 0.8883 -> 0.8866
-fig05  q: rejection 23.2 -> 23.5 (+1.1%),  AUC 0.8836 -> 0.8850
-fig05  W: rejection 18.2 -> 20.4 (+12.6%),  AUC 0.8830 -> 0.8883
-fig05  Z: rejection 22.1 -> 25.6 (+16.0%),  AUC 0.8712 -> 0.8760
-fig05  t: rejection 67.7 -> 71.5 (+5.6%),  AUC 0.9247 -> 0.9230
+fig05  g: rejection 23.9 -> 23.7 (-1.0%),  AUC 0.8883 -> 0.8873
+fig05  q: rejection 23.2 -> 23.3 (+0.4%),  AUC 0.8836 -> 0.8841
+fig05  W: rejection 18.2 -> 19.7 (+8.4%),  AUC 0.8830 -> 0.8869
+fig05  Z: rejection 22.1 -> 24.1 (+9.3%),  AUC 0.8712 -> 0.8725
+fig05  t: rejection 67.7 -> 71.7 (+6.0%),  AUC 0.9247 -> 0.9229
 fig10  arm P  LUT  270,382  FF  89,459  DSP 0  latency   8 cyc  II   1  clock 1.583 ns  (1.00x arm P)
 fig10  arm A2 LUT  261,881  FF  80,922  DSP 0  latency  13 cyc  II  14  clock 1.583 ns  (1.03x arm P)
 fig10  arm B  LUT  130,512  FF  64,718  DSP 0  latency   7 cyc  II   1  clock 1.575 ns  (2.07x arm P)
