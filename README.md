@@ -134,6 +134,15 @@ is Adam (β₂ = 0.98, weight decay 0.01) with one warm-up epoch and a linear de
 gradient clipping at 1.0, batch size 256, and early stopping on the validation AUC monitor
 with patience 15. Three seeds per configuration.
 
+The model is defined in code rather than in a standalone file. `bnjettag/code/hgq2/bnhgq2/qat.py`
+builds the trainable network from a configuration JSON — the architecture of section 1 with the
+binary weight quantizers attached — and `bnhgq2/train.py` is the training loop;
+`run_stage.py train --config configs/r8-small-w1a8-stdnn.json` is the entry point that produced
+the headline model. For hardware, the same architecture is rebuilt as a static graph in
+`bnhgq2/build.py`, and the hls4ml conversion call itself (`convert_from_keras_model`, Vitis
+backend) is in `bnhgq2/convert.py`, driven end to end with its fidelity gates by
+`convert_final.py`. A file-by-file map is in `bnjettag/code/hgq2/README.md`.
+
 The peak learning rate does not transfer between model scales, and the direction of the
 correction is not monotonic. A probe at the 19,201-parameter scale placed the optimum at
 2 × 10⁻⁵, below the value inherited from larger models. The 5,345-parameter configuration then

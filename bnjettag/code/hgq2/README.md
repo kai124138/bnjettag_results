@@ -18,12 +18,32 @@ Every stage is keyed by the **config hash**; results land in
 > `../../r7/` and `../../roc-results/`.
 A new model = a new JSON in `configs/` through the same stages — nothing re-derived.
 
+## Where the model is defined
+
+There is no single `model.py`; the network is built from a config JSON in code:
+
+- `bnhgq2/qat.py` — the trainable model (`build_qat_model`): input projection, the two
+  encoder blocks (einsum-dense QKV and output projections, softmax attention, feed-forward),
+  pooling and head, with the binary {−1,+1} weight quantizers attached. This file plus the
+  config JSON *is* the model; the headline configuration is `configs/r8-small-w1a8-stdnn.json`.
+- `bnhgq2/train.py` — the training loop (optimizer, schedule, early stopping, W&B logging),
+  entered through `run_stage.py train --config configs/<name>.json --seed N`.
+- `bnhgq2/build.py` — the same architecture rebuilt as the static hardware graph for
+  conversion (static activation quantizers in place of the trainable ones).
+- `bnhgq2/convert.py` — the hls4ml call itself (`hls4ml.converters.convert_from_keras_model`,
+  Vitis backend, `bit_exact=True`) and the project write for synthesis.
+- `convert_final.py` — the end-to-end driver: fetch checkpoint → static export → gate 1
+  (export against the trained model, correlation ≥ 0.9999) → hls4ml → gate 2 (C simulation
+  against the export on real jets, correlation ≥ 0.997) → synthesis tarball.
+
 ## Layout
 
 | Path | Role |
 | --- | --- |
 | `configs/*.json` | One model+quantization spec per file (arch, checkpoint, act bits, quantizer policy). |
 | `bnhgq2/config.py` | Config load/validate/hash. |
+| `bnhgq2/qat.py` | Config → trainable QAT model (`build_qat_model`) — the model definition. |
+| `bnhgq2/train.py` | Training loop (schedule, early stopping, W&B); entered via `run_stage.py train`. |
 | `bnhgq2/extract.py` | h5py-only extraction of latent kernels/biases + the folded PE constant from a QKeras `.h5` (no TF-2.11 needed). |
 | `bnhgq2/binarize.py` | AbsMean binarization math (α/β/sign) + the β-fold bookkeeping (which β is folded where, exactly). |
 | `bnhgq2/data.py` | numpy/h5py-only era-2 loader replicating `make_roc.py` exactly (sorted glob, per-jet pT re-sort, top-N). |
